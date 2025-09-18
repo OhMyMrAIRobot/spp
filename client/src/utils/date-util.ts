@@ -4,23 +4,25 @@
  */
 export const dateUtils = {
 	/**
-	 * Formats a date string or Date object into a human-readable Russian locale string
+	 * Formats a date string or Date object into a human-readable string
 	 *
 	 * @param {string | Date} date - Date to format (ISO string, timestamp, or Date object)
 	 * @returns {string} Formatted date string in "15 января 2024" format
 	 *
 	 * @example
-	 * dateUtils.format('2024-01-15'); // "15 января 2024"
-	 * dateUtils.format(new Date()); // "18 сентября 2024"
+	 * dateUtils.format('2024-01-15'); // "15 JAN 2024"
+	 * dateUtils.format(new Date()); // "18 SEP 2024"
 	 *
 	 * @throws {Error} If provided date cannot be parsed as valid Date object
 	 */
 	format: (date: string | Date): string => {
-		return new Date(date).toLocaleDateString('ru-RU', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-		})
+		return new Date(date)
+			.toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+			})
+			.toUpperCase()
 	},
 
 	/**

@@ -1,4 +1,4 @@
-import type { TaskStatusEnum } from './task-status-enum'
+import type { TaskStatusEnum } from './task-status/task-status-enum'
 
 /**
  * Represents a task entity in the task management system
@@ -11,6 +11,7 @@ export interface ITask {
 	title: string
 	description: string
 	status: TaskStatusEnum
+	assignee: string
 	createdAt: Date
 	dueDate?: Date
 }

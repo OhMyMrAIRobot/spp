@@ -7,9 +7,11 @@ interface IProps {
 
 const Layout: FC<IProps> = ({ children }) => {
 	return (
-		<div className='flex w-screen h-screen overflow-hidden'>
+		<div className='flex overflow-hidden min-h-screen bg-black/5 py-4 pr-4'>
 			<Sidebar />
-			{children}
+			<div className='w-full ml-60 border border-black/10 rounded-2xl bg-white px-8 py-6'>
+				{children}
+			</div>
 		</div>
 	)
 }
