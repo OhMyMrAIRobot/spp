@@ -1,9 +1,9 @@
-import { useEffect, useState, type FC } from 'react'
+import { useEffect, useState, type FC, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 interface IProps {
 	isOpen: boolean
-	children: React.ReactNode
+	children: ReactNode
 	onCancel: () => void
 }
 

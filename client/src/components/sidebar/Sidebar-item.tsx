@@ -6,7 +6,7 @@ interface IProps {
 	isActive: boolean
 }
 
-const SidebarItem: FC<IProps> = ({ title, isActive }) => {
+const SidebarItem: FC<IProps> = ({ title, isActive, icon }) => {
 	return (
 		<div className='flex gap-x-2 items-center text-black/70'>
 			<div
@@ -15,12 +15,12 @@ const SidebarItem: FC<IProps> = ({ title, isActive }) => {
 				}`}
 			/>
 			<div
-				className={`w-full h-full cursor-pointer rounded-lg flex items-center gap-x-1 py-1 px-2 transition-colors duration-200 ${
+				className={`lg:w-full h-full cursor-pointer rounded-lg flex items-center gap-x-1 py-1 px-2 transition-colors duration-200 ${
 					isActive ? 'bg-white' : 'hover:bg-white/50'
 				}`}
 			>
-				{/* <div className='size-5 flex items-center justify-center'>{icon}</div> */}
-				<span className='text-[18px]'>{title}</span>
+				<div className='size-6 flex items-center justify-center'>{icon}</div>
+				<span className='text-[18px] max-lg:hidden'>{title}</span>
 			</div>
 		</div>
 	)

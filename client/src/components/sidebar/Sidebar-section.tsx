@@ -8,7 +8,9 @@ interface IProps {
 const SidebarSection: FC<IProps> = ({ title, children }) => {
 	return (
 		<div>
-			<div className='text-sm font-medium text-black/60 pb-2'>{title}</div>
+			<div className='text-sm font-medium text-black/60 pb-2 max-lg:hidden'>
+				{title}
+			</div>
 			<div className='grid gap-1.5'>{children}</div>
 		</div>
 	)

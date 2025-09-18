@@ -15,7 +15,6 @@ const FormButton: FC<IProps> = ({
 }) => {
 	return (
 		<button
-			type='button'
 			onClick={onClick}
 			disabled={disabled}
 			className={`flex-1 px-4 py-2 rounded-lg transition-colors duration-200 ${

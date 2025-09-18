@@ -57,7 +57,7 @@ const ProjectPage: FC<IProps> = ({ project }) => {
 				</div>
 
 				{/* GRID */}
-				<div className='grid grid-cols-3 gap-x-4 h-fit'>
+				<div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-x-4 gap-y-8 h-fit'>
 					<TaskCardColumn
 						title={TaskStatusEnum.TODO}
 						tasks={getTasksByStatus(tasks, TaskStatusEnum.TODO)}

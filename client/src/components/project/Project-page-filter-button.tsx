@@ -10,7 +10,7 @@ const ProjectCardFilterButton: FC<IProps> = ({ title, onClick, isActive }) => {
 	return (
 		<button
 			onClick={onClick}
-			className={`px-4 py-2 text-sm rounded-full ${
+			className={`px-4 py-2 text-sm rounded-full transition-colors duration-200 ${
 				isActive ? 'font-semibold bg-black/5' : 'hover:bg-black/5'
 			}`}
 		>

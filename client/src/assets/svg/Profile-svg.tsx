@@ -4,7 +4,7 @@ import type { ISvgProps } from '../../types/svg-props'
 const ProfileSvg: FC<ISvgProps> = ({ className }) => {
 	return (
 		<svg
-			viewBox='0 0 20 20'
+			viewBox='0 0 24 24'
 			version='1.1'
 			fill='currentColor'
 			stroke='currentColor'

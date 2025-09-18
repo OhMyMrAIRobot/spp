@@ -150,7 +150,7 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, onAddTask }) => {
 					</div>
 
 					<div className='flex gap-3 pt-4'>
-						<FormButton onClick={() => {}} title={'Cancel'} invert={true} />
+						<FormButton onClick={onClose} title={'Cancel'} invert={true} />
 						<FormButton
 							onClick={handleSubmit}
 							title={'Add task'}

@@ -28,7 +28,6 @@ const ProjectCard: FC<IProps> = ({ project, onClick }) => {
 			className='border border-black/10 rounded-xl bg-white hover:bg-black/[0.01] transition-colors duration-200 cursor-pointer p-5 flex flex-col h-full'
 		>
 			{/* Header */}
-
 			<h3 className='text-lg font-semibold text-black mb-1'>{project.title}</h3>
 
 			<span className='text-sm text-black/50 mb-4'>
