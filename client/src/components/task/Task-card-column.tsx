@@ -5,9 +5,10 @@ import TaskCard from './Task-card'
 interface IProps {
 	title: string
 	tasks: ITask[]
+	onEditModal: (task: ITask) => void
 }
 
-const TaskCardColumn: FC<IProps> = ({ title, tasks }) => {
+const TaskCardColumn: FC<IProps> = ({ title, tasks, onEditModal }) => {
 	return (
 		<div className='grid grid-cols-1 bg-black/5 rounded-xl gap-y-3 p-3 h-fit'>
 			<div className='rounded-lg flex items-center gap-x-2 bg-white px-4 py-4 border border-black/5'>
@@ -18,7 +19,7 @@ const TaskCardColumn: FC<IProps> = ({ title, tasks }) => {
 			</div>
 
 			{tasks.map(task => (
-				<TaskCard key={task.id} task={task} />
+				<TaskCard key={task.id} task={task} onEditModal={onEditModal} />
 			))}
 		</div>
 	)

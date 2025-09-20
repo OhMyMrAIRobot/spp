@@ -1,14 +1,21 @@
 import type { FC, ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
-interface IProps {
+export interface ISidebarItemProps {
 	title: string
 	icon?: ReactNode
 	isActive: boolean
+	path: string
 }
 
-const SidebarItem: FC<IProps> = ({ title, isActive, icon }) => {
+const SidebarItem: FC<ISidebarItemProps> = ({
+	title,
+	isActive,
+	icon,
+	path,
+}) => {
 	return (
-		<div className='flex gap-x-2 items-center text-black/70'>
+		<Link to={path} className='flex gap-x-2 items-center text-black/70'>
 			<div
 				className={`w-1 h-[90%] rounded-lg bg-purple-500 ${
 					isActive ? 'opacity-100' : 'opacity-0'
@@ -22,7 +29,7 @@ const SidebarItem: FC<IProps> = ({ title, isActive, icon }) => {
 				<div className='size-6 flex items-center justify-center'>{icon}</div>
 				<span className='text-[18px] max-lg:hidden'>{title}</span>
 			</div>
-		</div>
+		</Link>
 	)
 }
 

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type FC } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
+import { useDispatch } from 'react-redux'
+import * as tasksActions from '../../store/slices/tasks-slice'
 import type { ITask } from '../../types/tasks/task'
 import { TaskStatusEnum } from '../../types/tasks/task-status/task-status-enum'
-import { generateId } from '../../utils/generate-id'
 import FormButton from '../buttons/Form-button'
 import Combobox from '../inputs/Combobox'
 import FormInput from '../inputs/Form-input'
@@ -10,67 +11,91 @@ import FormLabel from '../labels/Form-label'
 import ModalOverlay from '../modal/Modal-overlay'
 
 interface IProps {
+	projectId: string
 	isOpen: boolean
 	onClose: () => void
-	onAddTask: (task: ITask) => void
+	task: ITask | null
 }
 
-const TaskModal: FC<IProps> = ({ isOpen, onClose, onAddTask }) => {
-	const [title, setTitle] = useState<string>('')
-	const [desc, setDesc] = useState<string>('')
-	const [assignee, setAssignee] = useState<string>('')
-	const [date, setDate] = useState<Date | null>(null)
-	const [status, setStatus] = useState<string>(TaskStatusEnum.TODO)
+const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
+	const dispatch = useDispatch()
 
-	const handleDateChange = (value: string) => {
-		if (value) {
-			setDate(new Date(value))
-		} else {
-			setDate(null)
-		}
-	}
+	const [title, setTitle] = useState('')
+	const [desc, setDesc] = useState('')
+	const [assignee, setAssignee] = useState('')
+	const [date, setDate] = useState<string | null>(null)
+	const [status, setStatus] = useState<TaskStatusEnum>(TaskStatusEnum.TODO)
 
-	const handleSubmit = () => {
-		if (!isFormValid) return
-
-		const newTask: ITask = {
-			id: generateId(),
-			title: title.trim(),
-			description: desc.trim(),
-			assignee: assignee.trim(),
-			dueDate: date ?? undefined,
-			status: status as TaskStatusEnum,
-			createdAt: new Date(),
-		}
-
-		onAddTask(newTask)
-		resetForm()
-		onClose()
-	}
-
-	const resetForm = () => {
-		setTitle('')
-		setDesc('')
-		setAssignee('')
-		setDate(null)
-		setStatus(TaskStatusEnum.TODO)
-	}
+	const resetForm = useCallback(() => {
+		setTitle(task?.title ?? '')
+		setDesc(task?.description ?? '')
+		setAssignee(task?.assignee ?? '')
+		setDate(task?.dueDate ?? null)
+		setStatus(task?.status ?? TaskStatusEnum.TODO)
+	}, [task])
 
 	useEffect(() => {
-		if (isOpen) {
-			resetForm()
-		}
-	}, [isOpen])
+		if (isOpen) resetForm()
+	}, [isOpen, resetForm])
+
+	const handleDateChange = (value: string) => {
+		setDate(value ? new Date(value).toISOString() : null)
+	}
 
 	const isFormValid = useMemo(() => {
 		return title.trim() && desc.trim() && assignee.trim() && status
-	}, [assignee, desc, status, title])
+	}, [title, desc, assignee, status])
+
+	const hasChanges = useMemo(() => {
+		if (!task) return true
+		return (
+			title.trim() !== task.title.trim() ||
+			desc.trim() !== task.description.trim() ||
+			assignee.trim() !== task.assignee.trim() ||
+			date !== task.dueDate ||
+			status !== task.status
+		)
+	}, [assignee, date, desc, status, task, title])
+
+	const handleSubmit = () => {
+		if (!isFormValid || !hasChanges) return
+
+		if (task) {
+			dispatch(
+				tasksActions.updateTask({
+					id: task.id,
+					changes: {
+						title: title.trim(),
+						description: desc.trim(),
+						assignee: assignee.trim(),
+						dueDate: date ?? undefined,
+						status,
+					},
+				})
+			)
+		} else {
+			const newTask: Omit<ITask, 'id' | 'createdAt'> = {
+				title: title.trim(),
+				description: desc.trim(),
+				assignee: assignee.trim(),
+				dueDate: date ?? undefined,
+				status,
+				projectId,
+			}
+
+			dispatch(tasksActions.addTask(newTask))
+		}
+
+		onClose()
+	}
 
 	return (
 		<ModalOverlay isOpen={isOpen} onCancel={onClose}>
 			<div className='bg-white rounded-xl p-6 w-[450px]'>
 				<div className='flex items-center justify-between mb-4'>
-					<h3 className='text-lg font-semibold'>{'Add New Task'}</h3>
+					<h3 className='text-lg font-semibold'>{`${
+						task ? 'Edit' : 'Add'
+					} New Task`}</h3>
 					<button
 						onClick={onClose}
 						className='text-black/50 hover:text-black/70'
@@ -132,9 +157,9 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, onAddTask }) => {
 							isRequired={false}
 						/>
 						<FormInput
-							id={'add-task-due-date-input'}
+							id='add-task-due-date-input'
 							type='date'
-							value={date ? date.toISOString().split('T')[0] : ''}
+							value={date ? date.split('T')[0] : ''}
 							setValue={value => handleDateChange(value as string)}
 						/>
 					</div>
@@ -144,7 +169,7 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, onAddTask }) => {
 						<Combobox
 							options={Object.values(TaskStatusEnum)}
 							value={status}
-							onChange={setStatus}
+							onChange={value => setStatus(value as TaskStatusEnum)}
 							className='w-full'
 						/>
 					</div>
@@ -153,8 +178,8 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, onAddTask }) => {
 						<FormButton onClick={onClose} title={'Cancel'} invert={true} />
 						<FormButton
 							onClick={handleSubmit}
-							title={'Add task'}
-							disabled={!isFormValid}
+							title={`${task ? 'Edit' : 'Add'} task`}
+							disabled={!isFormValid || !hasChanges}
 						/>
 					</div>
 				</div>

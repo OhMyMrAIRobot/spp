@@ -1,30 +1,30 @@
 import type { FC } from 'react'
+import { Link } from 'react-router-dom'
+import { ROUTES } from '../../../routes/routes'
 import type { IProject } from '../../../types/projects/project'
+import type { ITask } from '../../../types/tasks/task'
 import { TaskStatusEnum } from '../../../types/tasks/task-status/task-status-enum'
 import { dateUtils } from '../../../utils/date-util'
 import { getTasksByStatus } from '../../../utils/get-tasks-by-status'
 
 interface IProps {
 	project: IProject
-	onClick?: (project: IProject) => void
+	tasks: ITask[]
 }
 
-const ProjectCard: FC<IProps> = ({ project, onClick }) => {
-	const todoTasks = getTasksByStatus(project.tasks, TaskStatusEnum.TODO)
-	const inProgressTasks = getTasksByStatus(
-		project.tasks,
-		TaskStatusEnum.IN_PROGRESS
-	)
-	const doneTasks = getTasksByStatus(project.tasks, TaskStatusEnum.DONE)
+const ProjectCard: FC<IProps> = ({ project, tasks }) => {
+	const todoTasks = getTasksByStatus(tasks, TaskStatusEnum.TODO)
+	const inProgressTasks = getTasksByStatus(tasks, TaskStatusEnum.IN_PROGRESS)
+	const doneTasks = getTasksByStatus(tasks, TaskStatusEnum.DONE)
 
 	const completionPercentage =
-		project.tasks.length > 0
-			? Math.round((doneTasks.length / project.tasks.length) * 100)
-			: 0
+		tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0
+
+	const projectDetailsPath = ROUTES.PROJECT_DETAILS.replace(':id', project.id)
 
 	return (
-		<div
-			onClick={() => onClick?.(project)}
+		<Link
+			to={projectDetailsPath}
 			className='border border-black/10 rounded-xl bg-white hover:bg-black/[0.01] transition-colors duration-200 cursor-pointer p-5 flex flex-col h-full'
 		>
 			{/* Header */}
@@ -34,7 +34,6 @@ const ProjectCard: FC<IProps> = ({ project, onClick }) => {
 				Created {dateUtils.format(project.createdAt)}
 			</span>
 
-			{/* Spacer to push progress bar to bottom */}
 			<div className='flex-1'></div>
 
 			{/* Task counters */}
@@ -73,14 +72,14 @@ const ProjectCard: FC<IProps> = ({ project, onClick }) => {
 				{/* Footer */}
 				<div className='flex items-center justify-between'>
 					<span className='text-sm text-black/50'>
-						{doneTasks.length} of {project.tasks.length} tasks completed
+						{doneTasks.length} of {tasks.length} tasks completed
 					</span>
 					<span className='text-sm font-medium text-purple-700'>
 						{completionPercentage}%
 					</span>
 				</div>
 			</div>
-		</div>
+		</Link>
 	)
 }
 

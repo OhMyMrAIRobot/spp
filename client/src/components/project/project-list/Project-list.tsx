@@ -1,47 +1,66 @@
-import type { FC } from 'react'
-import type { IProject } from '../../../types/projects/project'
+import { useState } from 'react'
+import { useSelector } from 'react-redux'
+import { projectsSelectors } from '../../../store/selectors/projects-selector'
+import { tasksSelectors } from '../../../store/selectors/tasks-selector'
+import FormButton from '../../buttons/Form-button'
+import ProjectModal from '../project-modal'
 import ProjectCard from './Project-card'
 
-interface IProps {
-	projects: IProject[]
-	onProjectClick?: (project: IProject) => void
-}
+const ProjectList = () => {
+	const projects = useSelector(projectsSelectors.selectAll)
+	const tasks = useSelector(tasksSelectors.selectAll)
 
-const ProjectList: FC<IProps> = ({ projects, onProjectClick }) => {
+	const [modalOpen, setModalOpen] = useState<boolean>(false)
+
 	return (
-		<div className='size-full p-6'>
-			{/* Header */}
-			<div className='flex items-center justify-between mb-6'>
-				<h1 className='text-2xl font-bold text-black'>Projects</h1>
-				<span className='text-black/50'>
-					{projects.length} project{projects.length !== 1 ? 's' : ''}
-				</span>
-			</div>
+		<>
+			<ProjectModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
 
-			{/* Projects grid */}
-			<div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-				{projects.map(project => (
-					<ProjectCard
-						key={project.id}
-						project={project}
-						onClick={onProjectClick}
-					/>
-				))}
-			</div>
+			<div className='size-full p-6'>
+				{/* Header */}
+				<div className='flex items-center justify-between mb-6'>
+					<h1 className='text-2xl font-bold text-black'>Projects</h1>
 
-			{/* Empty state */}
-			{projects.length === 0 && (
-				<div className='flex flex-col items-center justify-center py-12 text-center'>
-					<div className='text-black/30 text-6xl mb-4'>📁</div>
-					<h3 className='text-lg font-medium text-black/60 mb-2'>
-						No projects yet
-					</h3>
-					<p className='text-black/40'>
-						Create your first project to get started
-					</p>
+					<div className='flex gap-5 items-center'>
+						<span className='text-black/50'>
+							{projects.length} project{projects.length !== 1 ? 's' : ''}
+						</span>
+						<FormButton
+							onClick={() => setModalOpen(true)}
+							title={'Add Project'}
+						/>
+					</div>
 				</div>
-			)}
-		</div>
+
+				{/* Projects grid */}
+				<div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
+					{projects.map(project => {
+						const projectTasks = tasks.filter(t =>
+							project.taskIds.includes(t.id)
+						)
+						return (
+							<ProjectCard
+								key={project.id}
+								project={project}
+								tasks={projectTasks}
+							/>
+						)
+					})}
+				</div>
+
+				{/* Empty state */}
+				{projects.length === 0 && (
+					<div className='flex flex-col items-center justify-center py-12 text-center'>
+						<h3 className='text-lg font-medium text-black/60 mb-2'>
+							No projects yet
+						</h3>
+						<p className='text-black/40'>
+							Create your first project to get started
+						</p>
+					</div>
+				)}
+			</div>
+		</>
 	)
 }
 

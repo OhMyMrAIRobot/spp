@@ -1,16 +1,15 @@
-import { useState } from 'react'
-import Layout from './components/Layout'
-import { mockProjects } from './data'
-import ProjectPage from './pages/Project-page'
+import { Provider as ReduxProvider } from 'react-redux'
+import { BrowserRouter } from 'react-router-dom'
+import AppRoutes from './routes/App-routes'
+import { store } from './store/store'
 
 function App() {
-	const [projects] = useState(mockProjects)
-
 	return (
-		<Layout>
-			<ProjectPage project={projects[0]} />
-			{/* <ProjectsPage projects={projects} /> */}
-		</Layout>
+		<ReduxProvider store={store}>
+			<BrowserRouter>
+				<AppRoutes />
+			</BrowserRouter>
+		</ReduxProvider>
 	)
 }
 
