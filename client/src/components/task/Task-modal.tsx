@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
-import { useDispatch } from 'react-redux'
-import * as tasksActions from '../../store/slices/tasks-slice'
+import {
+	useCreateTaskMutation,
+	useUpdateTaskMutation,
+} from '../../store/services/task-api-service'
 import type { ITask } from '../../types/tasks/task'
 import { TaskStatusEnum } from '../../types/tasks/task-status/task-status-enum'
 import FormButton from '../buttons/Form-button'
@@ -18,13 +20,14 @@ interface IProps {
 }
 
 const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
-	const dispatch = useDispatch()
-
 	const [title, setTitle] = useState('')
 	const [desc, setDesc] = useState('')
 	const [assignee, setAssignee] = useState('')
 	const [date, setDate] = useState<string | null>(null)
 	const [status, setStatus] = useState<TaskStatusEnum>(TaskStatusEnum.TODO)
+
+	const [createTask, { isLoading: isCreating }] = useCreateTaskMutation()
+	const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation()
 
 	const resetForm = useCallback(() => {
 		setTitle(task?.title ?? '')
@@ -57,45 +60,50 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 		)
 	}, [assignee, date, desc, status, task, title])
 
-	const handleSubmit = () => {
+	const handleSubmit = async () => {
 		if (!isFormValid || !hasChanges) return
 
-		if (task) {
-			dispatch(
-				tasksActions.updateTask({
+		try {
+			if (task) {
+				const changes: Partial<ITask> = {}
+
+				if (title.trim() !== task.title.trim()) changes.title = title.trim()
+				if (desc.trim() !== task.description.trim())
+					changes.description = desc.trim()
+				if (assignee.trim() !== task.assignee.trim())
+					changes.assignee = assignee.trim()
+				if (date !== task.dueDate) changes.dueDate = date ?? undefined
+				if (status !== task.status) changes.status = status
+
+				updateTask({
 					id: task.id,
-					changes: {
-						title: title.trim(),
-						description: desc.trim(),
-						assignee: assignee.trim(),
-						dueDate: date ?? undefined,
-						status,
-					},
-				})
-			)
-		} else {
-			const newTask: Omit<ITask, 'id' | 'createdAt'> = {
-				title: title.trim(),
-				description: desc.trim(),
-				assignee: assignee.trim(),
-				dueDate: date ?? undefined,
-				status,
-				projectId,
+					projectId,
+					changes,
+				}).unwrap()
+			} else {
+				createTask({
+					title: title.trim(),
+					description: desc.trim(),
+					assignee: assignee.trim(),
+					dueDate: date ?? undefined,
+					status,
+					projectId,
+				}).unwrap()
 			}
 
-			dispatch(tasksActions.addTask(newTask))
+			onClose()
+		} catch {
+			/* empty */
 		}
-
-		onClose()
 	}
 
 	return (
 		<ModalOverlay isOpen={isOpen} onCancel={onClose}>
 			<div className='bg-white rounded-xl p-6 w-[450px]'>
 				<div className='flex items-center justify-between mb-4'>
-					<h3 className='text-lg font-semibold'>{`${
-						task ? 'Edit' : 'Add'
-					} New Task`}</h3>
+					<h3 className='text-lg font-semibold'>
+						{task ? 'Edit Task' : 'Add New Task'}
+					</h3>
 					<button
 						onClick={onClose}
 						className='text-black/50 hover:text-black/70'
@@ -179,7 +187,7 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 						<FormButton
 							onClick={handleSubmit}
 							title={`${task ? 'Edit' : 'Add'} task`}
-							disabled={!isFormValid || !hasChanges}
+							disabled={!isFormValid || !hasChanges || isCreating || isUpdating}
 						/>
 					</div>
 				</div>

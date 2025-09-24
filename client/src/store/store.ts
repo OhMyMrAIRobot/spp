@@ -1,25 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { mockProjects, mockTasks } from '../data'
-import { tasksProjectsListener } from './middlewares/tasks-listener'
-import projectsReducer, { projectsAdapter } from './slices/projects-slice'
-import tasksReducer, { tasksAdapter } from './slices/tasks-slice'
-
-const preloadedState = {
-	projects: projectsAdapter.setAll(
-		projectsAdapter.getInitialState(),
-		mockProjects
-	),
-	tasks: tasksAdapter.setAll(tasksAdapter.getInitialState(), mockTasks),
-}
+import { projectApi } from './services/project-api-service'
+import { taskApi } from './services/task-api-service'
 
 export const store = configureStore({
 	reducer: {
-		projects: projectsReducer,
-		tasks: tasksReducer,
+		[taskApi.reducerPath]: taskApi.reducer,
+		[projectApi.reducerPath]: projectApi.reducer,
 	},
 	middleware: getDefaultMiddleware =>
-		getDefaultMiddleware().prepend(tasksProjectsListener.middleware),
-	preloadedState,
+		getDefaultMiddleware().concat(taskApi.middleware, projectApi.middleware),
 	devTools: true,
 })
 

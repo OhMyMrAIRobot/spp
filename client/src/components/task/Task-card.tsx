@@ -1,27 +1,35 @@
 import { useState, type FC } from 'react'
-import { useDispatch } from 'react-redux'
 import CalendarSvg from '../../assets/svg/Calendar-svg'
 import DeleteSvg from '../../assets/svg/Delete-svg'
 import EditSvg from '../../assets/svg/Edit-svg'
 import UserTickSvg from '../../assets/svg/User-tick-svg'
-import * as tasksActions from '../../store/slices/tasks-slice'
+import { useDeleteTaskMutation } from '../../store/services/task-api-service'
 import type { ITask } from '../../types/tasks/task'
 import { dateUtils } from '../../utils/date-util'
+import SkeletonLoader from '../loaders/Skeleton-loader'
 import ConfirmationModal from '../modal/Confirmation-modal'
 
 interface IProps {
-	task: ITask
-	onEditModal: (task: ITask) => void
+	task?: ITask
+	onEditModal?: (task: ITask) => void
+	isLoading: boolean
 }
 
-const TaskCard: FC<IProps> = ({ task, onEditModal }) => {
-	const dispatch = useDispatch()
-
-	const handleDelete = () => {
-		dispatch(tasksActions.removeTask({ id: task.id }))
-	}
-
+const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 	const [modalOpen, setModalOpen] = useState<boolean>(false)
+
+	const [deleteTask] = useDeleteTaskMutation()
+
+	if (!task || isLoading)
+		return <SkeletonLoader className={'w-full h-40 rounded-lg'} />
+
+	const handleDelete = async () => {
+		try {
+			await deleteTask({ id: task.id, projectId: task.projectId }).unwrap()
+		} finally {
+			setModalOpen(false)
+		}
+	}
 
 	return (
 		<>
@@ -31,7 +39,12 @@ const TaskCard: FC<IProps> = ({ task, onEditModal }) => {
 				onConfirm={handleDelete}
 				onCancel={() => setModalOpen(false)}
 			/>
-			<div className='border border-black/10 rounded-lg bg-white hover:bg-black/[0.01]'>
+
+			<div
+				className={`border border-black/10 rounded-lg bg-white hover:bg-black/[0.01] ${
+					task.id.startsWith('temp') ? 'opacity-60 pointer-events-none' : ''
+				}`}
+			>
 				<div className='flex flex-col px-3 py-1.5'>
 					<h6 className='font-medium pb-1'>{task.title}</h6>
 					<p className='font-light text-sm pb-2'>{task.description}</p>
@@ -52,7 +65,7 @@ const TaskCard: FC<IProps> = ({ task, onEditModal }) => {
 
 					<div className='flex gap-2 mt-1 ml-auto'>
 						<button
-							onClick={() => onEditModal(task)}
+							onClick={() => onEditModal?.(task)}
 							className='p-2 rounded hover:bg-black/10 transition-colors duration-200'
 							title='Edit Task'
 						>

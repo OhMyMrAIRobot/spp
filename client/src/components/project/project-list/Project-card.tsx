@@ -1,31 +1,37 @@
 import type { FC } from 'react'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '../../../routes/routes'
-import type { IProject } from '../../../types/projects/project'
-import type { ITask } from '../../../types/tasks/task'
-import { TaskStatusEnum } from '../../../types/tasks/task-status/task-status-enum'
+import type { IProjectWithStats } from '../../../types/projects/project-with-stats'
 import { dateUtils } from '../../../utils/date-util'
-import { getTasksByStatus } from '../../../utils/get-tasks-by-status'
+import SkeletonLoader from '../../loaders/Skeleton-loader'
 
 interface IProps {
-	project: IProject
-	tasks: ITask[]
+	project?: IProjectWithStats
+	isLoading: boolean
 }
 
-const ProjectCard: FC<IProps> = ({ project, tasks }) => {
-	const todoTasks = getTasksByStatus(tasks, TaskStatusEnum.TODO)
-	const inProgressTasks = getTasksByStatus(tasks, TaskStatusEnum.IN_PROGRESS)
-	const doneTasks = getTasksByStatus(tasks, TaskStatusEnum.DONE)
+const ProjectCard: FC<IProps> = ({ project, isLoading }) => {
+	if (isLoading || !project)
+		return <SkeletonLoader className={'w-full rounded-lg h-44'} />
+
+	const totalTasksCount =
+		project.taskCounts.DONE +
+		project.taskCounts.IN_PROGRESS +
+		project.taskCounts.TODO
 
 	const completionPercentage =
-		tasks.length > 0 ? Math.round((doneTasks.length / tasks.length) * 100) : 0
+		totalTasksCount > 0
+			? Math.round((project.taskCounts.DONE / totalTasksCount) * 100)
+			: 0
 
 	const projectDetailsPath = ROUTES.PROJECT_DETAILS.replace(':id', project.id)
 
 	return (
 		<Link
 			to={projectDetailsPath}
-			className='border border-black/10 rounded-xl bg-white hover:bg-black/[0.01] transition-colors duration-200 cursor-pointer p-5 flex flex-col h-full'
+			className={`border border-black/10 rounded-xl bg-white hover:bg-black/[0.01] transition-colors duration-200 cursor-pointer p-5 flex flex-col h-full ${
+				project.id.startsWith('temp') ? 'opacity-60 pointer-events-none' : ''
+			}`}
 		>
 			{/* Header */}
 			<h3 className='text-lg font-semibold text-black mb-1'>{project.title}</h3>
@@ -41,19 +47,19 @@ const ProjectCard: FC<IProps> = ({ project, tasks }) => {
 				<div className='flex items-center gap-1'>
 					<div className='w-2 h-2 bg-blue-500 rounded-full' />
 					<span className='text-sm text-black/70'>
-						Todo: {todoTasks.length}
+						Todo: {project.taskCounts.TODO}
 					</span>
 				</div>
 				<div className='flex items-center gap-1'>
 					<div className='w-2 h-2 bg-yellow-500 rounded-full' />
 					<span className='text-sm text-black/70'>
-						In Progress: {inProgressTasks.length}
+						In Progress: {project.taskCounts.IN_PROGRESS}
 					</span>
 				</div>
 				<div className='flex items-center gap-1'>
 					<div className='w-2 h-2 bg-green-500 rounded-full' />
 					<span className='text-sm text-black/70'>
-						Done: {doneTasks.length}
+						Done: {project.taskCounts.DONE}
 					</span>
 				</div>
 			</div>
@@ -72,7 +78,7 @@ const ProjectCard: FC<IProps> = ({ project, tasks }) => {
 				{/* Footer */}
 				<div className='flex items-center justify-between'>
 					<span className='text-sm text-black/50'>
-						{doneTasks.length} of {tasks.length} tasks completed
+						{project.taskCounts.DONE} of {totalTasksCount} tasks completed
 					</span>
 					<span className='text-sm font-medium text-purple-700'>
 						{completionPercentage}%

@@ -1,6 +1,5 @@
 import { useMemo, useState, type FC } from 'react'
-import { useDispatch } from 'react-redux'
-import * as projectsActions from '../../store/slices/projects-slice'
+import { useCreateProjectMutation } from '../../store/services/project-api-service'
 import FormButton from '../buttons/Form-button'
 import FormInput from '../inputs/Form-input'
 import FormLabel from '../labels/Form-label'
@@ -12,25 +11,24 @@ interface IProps {
 }
 
 const ProjectModal: FC<IProps> = ({ isOpen, onClose }) => {
-	const dispatch = useDispatch()
-
 	const [title, setTitle] = useState('')
 
 	const isFormValid = useMemo(() => {
 		return title.trim()
 	}, [title])
 
-	const handleSubmit = () => {
+	const [createProject, { isLoading }] = useCreateProjectMutation()
+
+	const handleSubmit = async () => {
 		if (!isFormValid) return
 
-		dispatch(
-			projectsActions.addProject({
-				title: title.trim(),
-			})
-		)
-
-		onClose()
-		setTitle('')
+		try {
+			createProject({ title: title.trim() })
+			setTitle('')
+			onClose()
+		} catch {
+			/* empty */
+		}
 	}
 
 	return (
@@ -67,7 +65,7 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose }) => {
 						<FormButton
 							onClick={handleSubmit}
 							title={'Add project'}
-							disabled={!isFormValid}
+							disabled={!isFormValid || isLoading}
 						/>
 					</div>
 				</div>
