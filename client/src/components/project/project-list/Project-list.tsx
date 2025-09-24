@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useGetProjectsQuery } from '../../../store/services/project-api-service'
 import FormButton from '../../buttons/Form-button'
 import SkeletonLoader from '../../loaders/Skeleton-loader'
-import ProjectModal from '../project-modal'
 import ProjectCard from './Project-card'
+import ProjectModal from './Project-modal'
 
 const ProjectList = () => {
 	const { data: projects, isLoading: isProjectsLoading } = useGetProjectsQuery()

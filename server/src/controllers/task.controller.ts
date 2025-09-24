@@ -11,26 +11,28 @@ import {
 import { ApiResponse } from '../types/http/response/api.response';
 
 export const taskController = {
-  getAll: (
+  getAll: async (
     req: Request,
     res: Response<ApiResponse<ITask[]>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const tasks = taskService.getAll();
+      const tasks = await taskService.getAll();
+
       res.json({ data: tasks });
     } catch (err) {
       next(err);
     }
   },
 
-  getById: (
+  getById: async (
     req: Request<TaskParams>,
     res: Response<ApiResponse<ITask>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const task = taskService.getById(req.params.id);
+      const task = await taskService.getById(req.params.id);
+
       if (!task) throw new AppError(ErrorMessages.TASK_NOT_FOUND, 404);
 
       res.json({ data: task });
@@ -39,26 +41,27 @@ export const taskController = {
     }
   },
 
-  getByProject: (
+  getByProject: async (
     req: Request<Pick<TaskParams, 'projectId'>>,
     res: Response<ApiResponse<ITask[]>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const tasks = taskService.getByProjectId(req.params.projectId);
+      const tasks = await taskService.getByProjectId(req.params.projectId);
+
       res.json({ data: tasks });
     } catch (err) {
       next(err);
     }
   },
 
-  create: (
+  create: async (
     req: Request<{}, {}, CreateTaskBody>,
     res: Response<ApiResponse<ITask>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const newTask = taskService.create(req.body);
+      const newTask = await taskService.create(req.body);
 
       res.status(201).json({ data: newTask });
     } catch (err) {
@@ -66,28 +69,28 @@ export const taskController = {
     }
   },
 
-  update: (
+  update: async (
     req: Request<TaskParams, {}, UpdateTaskBody>,
     res: Response<ApiResponse<ITask>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const updated = taskService.update(req.params.id, req.body);
-      if (!updated) throw new AppError(ErrorMessages.UPDATE_ERROR);
+      const updated = await taskService.update(req.params.id, req.body);
+
       res.json({ data: updated });
     } catch (err) {
       next(err);
     }
   },
 
-  delete: (
+  delete: async (
     req: Request<TaskParams>,
     res: Response<ApiResponse<null>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const deleted = taskService.delete(req.params.id);
-      if (!deleted) throw new AppError(ErrorMessages.DELETE_ERROR);
+      await taskService.delete(req.params.id);
+
       res.status(204).json({ data: null });
     } catch (err) {
       next(err);

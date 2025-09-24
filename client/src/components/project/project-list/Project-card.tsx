@@ -34,13 +34,17 @@ const ProjectCard: FC<IProps> = ({ project, isLoading }) => {
 			}`}
 		>
 			{/* Header */}
-			<h3 className='text-lg font-semibold text-black mb-1'>{project.title}</h3>
+			<h3 className='text-lg font-semibold text-black'>{project.title}</h3>
 
-			<span className='text-sm text-black/50 mb-4'>
-				Created {dateUtils.format(project.createdAt)}
-			</span>
+			<p className='text-sm text-black/50 mb-2 line-clamp-3 overflow-hidden'>
+				{project.description}
+			</p>
 
 			<div className='flex-1'></div>
+
+			<span className='text-sm text-black/50 mb-2'>
+				Created {dateUtils.format(project.createdAt)}
+			</span>
 
 			{/* Task counters */}
 			<div className='flex items-center gap-4 mb-2'>

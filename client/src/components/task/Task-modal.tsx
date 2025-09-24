@@ -4,7 +4,7 @@ import {
 	useUpdateTaskMutation,
 } from '../../store/services/task-api-service'
 import type { ITask } from '../../types/tasks/task'
-import { TaskStatusEnum } from '../../types/tasks/task-status/task-status-enum'
+import { TaskStatusEnum } from '../../types/tasks/task-status-enum'
 import FormButton from '../buttons/Form-button'
 import Combobox from '../inputs/Combobox'
 import FormInput from '../inputs/Form-input'
@@ -20,9 +20,8 @@ interface IProps {
 }
 
 const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
-	const [title, setTitle] = useState('')
-	const [desc, setDesc] = useState('')
-	const [assignee, setAssignee] = useState('')
+	const [title, setTitle] = useState<string>('')
+	const [desc, setDesc] = useState<string>('')
 	const [date, setDate] = useState<string | null>(null)
 	const [status, setStatus] = useState<TaskStatusEnum>(TaskStatusEnum.TODO)
 
@@ -32,7 +31,6 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 	const resetForm = useCallback(() => {
 		setTitle(task?.title ?? '')
 		setDesc(task?.description ?? '')
-		setAssignee(task?.assignee ?? '')
 		setDate(task?.dueDate ?? null)
 		setStatus(task?.status ?? TaskStatusEnum.TODO)
 	}, [task])
@@ -46,19 +44,18 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 	}
 
 	const isFormValid = useMemo(() => {
-		return title.trim() && desc.trim() && assignee.trim() && status
-	}, [title, desc, assignee, status])
+		return title.trim() && desc.trim() && status
+	}, [title, desc, status])
 
 	const hasChanges = useMemo(() => {
 		if (!task) return true
 		return (
 			title.trim() !== task.title.trim() ||
 			desc.trim() !== task.description.trim() ||
-			assignee.trim() !== task.assignee.trim() ||
 			date !== task.dueDate ||
 			status !== task.status
 		)
-	}, [assignee, date, desc, status, task, title])
+	}, [date, desc, status, task, title])
 
 	const handleSubmit = async () => {
 		if (!isFormValid || !hasChanges) return
@@ -70,8 +67,6 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 				if (title.trim() !== task.title.trim()) changes.title = title.trim()
 				if (desc.trim() !== task.description.trim())
 					changes.description = desc.trim()
-				if (assignee.trim() !== task.assignee.trim())
-					changes.assignee = assignee.trim()
 				if (date !== task.dueDate) changes.dueDate = date ?? undefined
 				if (status !== task.status) changes.status = status
 
@@ -84,7 +79,7 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 				createTask({
 					title: title.trim(),
 					description: desc.trim(),
-					assignee: assignee.trim(),
+
 					dueDate: date ?? undefined,
 					status,
 					projectId,
@@ -140,21 +135,6 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 							setValue={setDesc}
 							rows={3}
 							placeholder='Enter task description'
-						/>
-					</div>
-
-					<div>
-						<FormLabel
-							title={'Assignee'}
-							htmlFor={'add-task-assignee-input'}
-							isRequired={true}
-						/>
-						<FormInput
-							id={'add-task-assignee-input'}
-							value={assignee}
-							setValue={setAssignee}
-							placeholder='Enter assignee'
-							type='text'
 						/>
 					</div>
 

@@ -1,17 +1,10 @@
-import { TaskStatusEnum } from '../../../models/task/task-status';
+import { ITask } from '../../../models/task/task';
 
 export type TaskParams = {
   id: string;
   projectId: string;
 };
 
-export type CreateTaskBody = {
-  title: string;
-  description: string;
-  status: TaskStatusEnum;
-  assignee: string;
-  dueDate?: string;
-  projectId: string;
-};
+export type CreateTaskBody = Omit<ITask, '_id' | 'createdAt'>;
 
 export type UpdateTaskBody = Partial<CreateTaskBody>;

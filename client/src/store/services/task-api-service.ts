@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { ApiResponse } from '../../types/api-response'
+import type { CreateTaskData } from '../../types/tasks/create-task-data'
 import type { ITask } from '../../types/tasks/task'
 import { projectApi } from './project-api-service'
 
@@ -15,10 +16,7 @@ export const taskApi = createApi({
 				response.data ?? [],
 		}),
 
-		createTask: builder.mutation<
-			ITask | undefined,
-			Omit<ITask, 'id' | 'createdAt'>
-		>({
+		createTask: builder.mutation<ITask | undefined, CreateTaskData>({
 			query: body => ({
 				url: '/tasks',
 				method: 'POST',
@@ -31,7 +29,7 @@ export const taskApi = createApi({
 					id: tempId,
 					title: body.title,
 					description: body.description,
-					assignee: body.assignee,
+					assignee: '',
 					dueDate: body.dueDate,
 					status: body.status,
 					projectId: body.projectId,
@@ -78,7 +76,7 @@ export const taskApi = createApi({
 
 		updateTask: builder.mutation<
 			ITask | undefined,
-			{ id: string; projectId: string; changes: Partial<ITask> }
+			{ id: string; projectId: string; changes: Partial<CreateTaskData> }
 		>({
 			query: ({ id, changes }) => ({
 				url: `/tasks/${id}`,

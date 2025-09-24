@@ -1,4 +1,4 @@
-import type { TaskStatusEnum } from './task-status/task-status-enum'
+import type { TaskStatusEnum } from './task-status-enum'
 
 export interface ITask {
 	id: string

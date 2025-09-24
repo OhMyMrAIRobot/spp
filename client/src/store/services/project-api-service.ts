@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { ApiResponse } from '../../types/api-response'
+import type { CreateProjectData } from '../../types/projects/create-project-data'
 import type { IProjectWithStats } from '../../types/projects/project-with-stats'
 
 const SERVER_URL = import.meta.env.VITE_API_URL
@@ -31,7 +32,7 @@ export const projectApi = createApi({
 
 		createProject: builder.mutation<
 			IProjectWithStats | null,
-			{ title: string }
+			CreateProjectData
 		>({
 			query: body => ({
 				url: '/projects',
@@ -45,6 +46,8 @@ export const projectApi = createApi({
 				const tempProject: IProjectWithStats = {
 					id: tempId,
 					title: body.title,
+					description: body.description,
+					members: body.members,
 					createdAt: new Date().toISOString(),
 					taskCounts: { TODO: 0, IN_PROGRESS: 0, DONE: 0 },
 				}

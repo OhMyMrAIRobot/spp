@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import { ErrorMessages } from '../constants/errors';
 import { IProjectWithStats } from '../models/project/project-with-stats';
 import { projectService } from '../services/project.service';
-import { AppError } from '../types/http/error/app-error';
 import {
   CreateProjectBody,
   ProjectParams,
@@ -11,13 +9,13 @@ import {
 import { ApiResponse } from '../types/http/response/api.response';
 
 export const projectController = {
-  getAll: (
+  getAll: async (
     req: Request,
     res: Response<ApiResponse<IProjectWithStats[]>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const projects = projectService.getAll();
+      const projects = await projectService.getAll();
 
       res.json({ data: projects });
     } catch (err) {
@@ -25,16 +23,15 @@ export const projectController = {
     }
   },
 
-  getById: (
+  getById: async (
     req: Request<ProjectParams>,
     res: Response<ApiResponse<IProjectWithStats>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
       const { id } = req.params;
 
-      const project = projectService.getById(id);
-      if (!project) throw new AppError(ErrorMessages.PROJECT_NOT_FOUND, 404);
+      const project = await projectService.getById(id);
 
       res.json({ data: project });
     } catch (err) {
@@ -42,13 +39,13 @@ export const projectController = {
     }
   },
 
-  create: (
+  create: async (
     req: Request<{}, {}, CreateProjectBody>,
     res: Response<ApiResponse<IProjectWithStats>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const newProject = projectService.create(req.body);
+      const newProject = await projectService.create(req.body);
 
       res.status(201).json({ data: newProject });
     } catch (err) {
@@ -56,16 +53,15 @@ export const projectController = {
     }
   },
 
-  update: (
+  update: async (
     req: Request<ProjectParams, {}, UpdateProjectBody>,
     res: Response<ApiResponse<IProjectWithStats>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
       const { id } = req.params;
 
-      const updated = projectService.update(id, req.body);
-      if (!updated) throw new AppError(ErrorMessages.UPDATE_ERROR);
+      const updated = await projectService.update(id, req.body);
 
       res.json({ data: updated });
     } catch (err) {
@@ -73,15 +69,14 @@ export const projectController = {
     }
   },
 
-  delete: (
+  delete: async (
     req: Request<ProjectParams>,
     res: Response<ApiResponse<null>>,
     next: NextFunction,
-  ): void => {
+  ) => {
     try {
-      const deleted = projectService.delete(req.params.id);
+      await projectService.delete(req.params.id);
 
-      if (!deleted) throw new AppError(ErrorMessages.DELETE_ERROR);
       res.status(204).json({ data: null });
     } catch (err) {
       next(err);

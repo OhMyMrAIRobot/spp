@@ -1,5 +1,5 @@
 import type { ITask } from '../types/tasks/task'
-import type { TaskStatusEnum } from '../types/tasks/task-status/task-status-enum'
+import type { TaskStatusEnum } from '../types/tasks/task-status-enum'
 
 export const getTasksByStatus = (
 	tasks: ITask[],

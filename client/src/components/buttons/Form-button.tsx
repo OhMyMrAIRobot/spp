@@ -17,7 +17,7 @@ const FormButton: FC<IProps> = ({
 		<button
 			onClick={onClick}
 			disabled={disabled}
-			className={`flex-1 px-4 py-2 rounded-lg transition-colors duration-200 ${
+			className={`flex-1 px-4 py-2 rounded-lg transition-colors text-nowrap duration-200 ${
 				disabled ? 'pointer-events-none opacity-40' : ''
 			} ${
 				invert

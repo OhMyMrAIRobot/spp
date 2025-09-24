@@ -1,9 +1,11 @@
 import { useMemo, useState, type FC } from 'react'
-import { useCreateProjectMutation } from '../../store/services/project-api-service'
-import FormButton from '../buttons/Form-button'
-import FormInput from '../inputs/Form-input'
-import FormLabel from '../labels/Form-label'
-import ModalOverlay from '../modal/Modal-overlay'
+import { useCreateProjectMutation } from '../../../store/services/project-api-service'
+import type { CreateProjectData } from '../../../types/projects/create-project-data'
+import FormButton from '../../buttons/Form-button'
+import FormInput from '../../inputs/Form-input'
+import FormTextbox from '../../inputs/Form-textbox'
+import FormLabel from '../../labels/Form-label'
+import ModalOverlay from '../../modal/Modal-overlay'
 
 interface IProps {
 	isOpen: boolean
@@ -11,20 +13,28 @@ interface IProps {
 }
 
 const ProjectModal: FC<IProps> = ({ isOpen, onClose }) => {
-	const [title, setTitle] = useState('')
+	const [title, setTitle] = useState<string>('')
+	const [description, setDescription] = useState<string>('')
 
 	const isFormValid = useMemo(() => {
-		return title.trim()
-	}, [title])
+		return title.trim() && description.trim()
+	}, [description, title])
 
 	const [createProject, { isLoading }] = useCreateProjectMutation()
 
 	const handleSubmit = async () => {
 		if (!isFormValid) return
 
+		const data: CreateProjectData = {
+			title: title.trim(),
+			description: description.trim(),
+			members: [],
+		}
+
 		try {
-			createProject({ title: title.trim() })
+			createProject(data)
 			setTitle('')
+			setDescription('')
 			onClose()
 		} catch {
 			/* empty */
@@ -45,7 +55,7 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose }) => {
 				</div>
 
 				<div className='space-y-4'>
-					<div>
+					<div className='grid gap-1'>
 						<FormLabel
 							title={'Project Title'}
 							htmlFor={'add-project-title-input'}
@@ -57,6 +67,20 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose }) => {
 							placeholder={'Enter project title'}
 							id={'add-project-title-input'}
 							type={'text'}
+						/>
+					</div>
+
+					<div className='grid gap-1'>
+						<FormLabel
+							title={'Project Description'}
+							htmlFor={'add-project-description-input'}
+							isRequired={true}
+						/>
+						<FormTextbox
+							value={description}
+							setValue={setDescription}
+							placeholder={'Enter project descritpion'}
+							id={'add-project-description-input'}
 						/>
 					</div>
 

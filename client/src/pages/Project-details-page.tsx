@@ -7,7 +7,7 @@ import TaskModal from '../components/task/Task-modal'
 import { useGetProjectByIdQuery } from '../store/services/project-api-service'
 import { useGetTasksByProjectQuery } from '../store/services/task-api-service'
 import type { ITask } from '../types/tasks/task'
-import { TaskStatusEnum } from '../types/tasks/task-status/task-status-enum'
+import { TaskStatusEnum } from '../types/tasks/task-status-enum'
 import { getTasksByStatus } from '../utils/get-tasks-by-status'
 
 const ProjectDetailsPage = () => {
@@ -57,14 +57,18 @@ const ProjectDetailsPage = () => {
 
 			<div className='flex flex-col gap-5'>
 				{/* HEADER */}
-				<div className='flex items-center justify-between border-b border-black/5 pb-5'>
-					{!project ? (
-						<SkeletonLoader className={'w-40 h-7 rounded-lg'} />
-					) : (
-						<h2 className='text-[24px] font-bold'>{project.title}</h2>
-					)}
+				<div className='flex gap-5 items-top border-b border-black/5 pb-5'>
+					<div className='grid gap-y-1'>
+						{!project ? (
+							<SkeletonLoader className={'w-40 h-7 rounded-lg'} />
+						) : (
+							<h2 className='text-[24px] font-bold'>{project.title}</h2>
+						)}
 
-					<div className='flex'>
+						<h6 className='text-black/50 text-sm'>{project?.description}</h6>
+					</div>
+
+					<div className='w-fit ml-auto'>
 						<FormButton
 							onClick={openAddModal}
 							title={'Add Task'}

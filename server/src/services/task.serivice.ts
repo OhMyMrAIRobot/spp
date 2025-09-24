@@ -1,57 +1,92 @@
-import { mockTasks } from '../data';
-import { ITask } from '../models/task/task';
+import { Types } from 'mongoose';
+import { ErrorMessages } from '../constants/errors';
+import { ITask, Task } from '../models/task/task';
+import { AppError } from '../types/http/error/app-error';
 import {
   CreateTaskBody,
   UpdateTaskBody,
 } from '../types/http/request/task.request';
-import { generateId } from '../utils/generate-id';
-
-let tasks: ITask[] = [...mockTasks];
+import { projectService } from './project.service';
+import { userService } from './user.service';
 
 export const taskService = {
-  getAll: (): ITask[] => tasks,
+  getAll: async (): Promise<ITask[]> => Task.find().exec(),
 
-  getById: (id: string): ITask | undefined => tasks.find((t) => t.id === id),
+  getById: async (id: string): Promise<ITask> => {
+    if (!Types.ObjectId.isValid(id))
+      throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
 
-  getByProjectId: (projectId: string): ITask[] =>
-    tasks.filter((t) => t.projectId === projectId),
+    const task = await Task.findById(id).exec();
 
-  create: (data: CreateTaskBody): ITask => {
-    const newTask: ITask = {
-      ...data,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    tasks.push(newTask);
-
-    return newTask;
-  },
-
-  update: (id: string, changes: UpdateTaskBody): ITask | null => {
-    const task = tasks.find((t) => t.id === id);
-    if (!task) return null;
-    Object.assign(task, changes);
+    if (!task) throw new AppError(ErrorMessages.TASK_NOT_FOUND, 404);
 
     return task;
   },
 
-  delete: (id: string): boolean => {
-    const task = tasks.find((t) => t.id === id);
-    if (!task) return false;
+  getByProjectId: async (projectId: string): Promise<ITask[]> => {
+    if (!Types.ObjectId.isValid(projectId)) return [];
 
-    tasks = tasks.filter((t) => t.id !== id);
-
-    return true;
+    return Task.find({ projectId: new Types.ObjectId(projectId) }).exec();
   },
 
-  countByProject: (projectId: string) => {
-    const tasksForProject = tasks.filter((t) => t.projectId === projectId);
+  create: async (data: CreateTaskBody): Promise<ITask> => {
+    // TODO: раскомментить позже
+    // await userService.getById(data.assignee.toString());
+    await projectService.getById(data.projectId.toString());
+
+    const task = new Task({
+      ...data,
+      projectId: new Types.ObjectId(data.projectId),
+      // assignee: new Types.ObjectId(data.assignee),
+      assignee: new Types.ObjectId('68d43c2d20a45afccfba8d8d'), // заглушка до 6ой лабы
+    });
+
+    return task.save();
+  },
+
+  update: async (id: string, changes: UpdateTaskBody): Promise<ITask> => {
+    await taskService.getById(id);
+
+    if (changes.assignee) {
+      await userService.getById(changes.assignee.toString());
+      changes.assignee = new Types.ObjectId(changes.assignee);
+    }
+
+    if (changes.projectId) {
+      await projectService.getById(changes.projectId.toString());
+      changes.projectId = new Types.ObjectId(changes.projectId);
+    }
+
+    const updated = await Task.findByIdAndUpdate(id, changes, {
+      new: true,
+    }).exec();
+
+    if (!updated) {
+      throw new AppError(ErrorMessages.UPDATE_ERROR);
+    }
+
+    return updated;
+  },
+
+  delete: async (id: string) => {
+    await taskService.getById(id);
+
+    const deleted = await Task.findByIdAndDelete(id).exec();
+
+    if (!deleted) throw new AppError(ErrorMessages.DELETE_ERROR);
+
+    return;
+  },
+
+  countByProject: async (projectId: string) => {
+    const tasks = await Task.find({
+      projectId: new Types.ObjectId(projectId),
+    }).exec();
 
     return {
-      TODO: tasksForProject.filter((t) => t.status === 'TODO').length,
-      IN_PROGRESS: tasksForProject.filter((t) => t.status === 'IN_PROGRESS')
-        .length,
-      DONE: tasksForProject.filter((t) => t.status === 'DONE').length,
+      TODO: tasks.filter((t) => t.status === 'TODO').length,
+      IN_PROGRESS: tasks.filter((t) => t.status === 'IN_PROGRESS').length,
+      DONE: tasks.filter((t) => t.status === 'DONE').length,
     };
   },
 };
