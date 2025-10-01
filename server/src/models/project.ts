@@ -1,11 +1,11 @@
-import mongoose, { Schema, Types } from 'mongoose';
-import { toJSONOptions } from '../../utils/common';
+import mongoose, { Schema } from 'mongoose';
+import { toJSONOptions } from '../utils/common';
 
 export interface IProject {
-  _id?: string;
+  id: string;
   title: string;
   description: string;
-  members: string[] | Types.ObjectId[];
+  members: string[];
   createdAt: string;
 }
 

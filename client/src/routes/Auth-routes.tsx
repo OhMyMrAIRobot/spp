@@ -5,7 +5,7 @@ import ProjectDetailsPage from '../pages/Project-details-page'
 import ProjectsPage from '../pages/Projects-page'
 import { ROUTES } from './routes'
 
-export const RouteList = () => {
+const AuthRoutes = () => {
 	return (
 		<>
 			<Route path={ROUTES.HOME} element={<HomePage />} />
@@ -17,3 +17,5 @@ export const RouteList = () => {
 		</>
 	)
 }
+
+export default AuthRoutes

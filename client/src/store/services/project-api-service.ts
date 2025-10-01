@@ -7,8 +7,18 @@ const SERVER_URL = import.meta.env.VITE_API_URL
 
 export const projectApi = createApi({
 	reducerPath: 'ProjectApi',
-	baseQuery: fetchBaseQuery({ baseUrl: SERVER_URL }),
+	baseQuery: fetchBaseQuery({
+		baseUrl: SERVER_URL,
+		prepareHeaders: headers => {
+			const token = localStorage.getItem('token')
+			if (token) {
+				headers.set('Authorization', `Bearer ${token}`)
+			}
+			return headers
+		},
+	}),
 	tagTypes: ['Projects'],
+
 	endpoints: builder => ({
 		getProjects: builder.query<IProjectWithStats[], void>({
 			query: () => '/projects',
@@ -80,6 +90,96 @@ export const projectApi = createApi({
 				}
 			},
 		}),
+
+		updateProject: builder.mutation<
+			IProjectWithStats | null,
+			{ id: string; changes: Partial<CreateProjectData> }
+		>({
+			query: ({ id, changes }) => ({
+				url: `/projects/${id}`,
+				method: 'PATCH',
+				body: changes,
+			}),
+			transformResponse: (response: ApiResponse<IProjectWithStats>) =>
+				response.data ?? null,
+			async onQueryStarted({ id, changes }, { dispatch, queryFulfilled }) {
+				const patchList = dispatch(
+					projectApi.util.updateQueryData('getProjects', undefined, draft => {
+						const index = draft.findIndex(p => p.id === id)
+						if (index !== -1) {
+							draft[index] = { ...draft[index], ...changes }
+						}
+					})
+				)
+
+				const patchSingle = dispatch(
+					projectApi.util.updateQueryData('getProjectById', id, draft => {
+						if (draft) {
+							Object.assign(draft, changes)
+						}
+					})
+				)
+
+				try {
+					const { data: updated } = await queryFulfilled
+
+					if (updated) {
+						dispatch(
+							projectApi.util.updateQueryData(
+								'getProjects',
+								undefined,
+								draft => {
+									const index = draft.findIndex(p => p.id === id)
+									if (index !== -1) draft[index] = updated
+								}
+							)
+						)
+
+						dispatch(
+							projectApi.util.updateQueryData('getProjectById', id, draft => {
+								if (draft) {
+									Object.assign(draft, updated)
+								}
+							})
+						)
+					} else {
+						patchList.undo()
+						patchSingle.undo()
+					}
+				} catch {
+					patchList.undo()
+					patchSingle.undo()
+				}
+			},
+		}),
+
+		deleteProject: builder.mutation<{ success: boolean }, string>({
+			query: id => ({
+				url: `/projects/${id}`,
+				method: 'DELETE',
+			}),
+			async onQueryStarted(id, { dispatch, queryFulfilled }) {
+				const patchList = dispatch(
+					projectApi.util.updateQueryData('getProjects', undefined, draft => {
+						const index = draft.findIndex(p => p.id === id)
+						if (index !== -1) draft.splice(index, 1)
+					})
+				)
+
+				const patchSingle = dispatch(
+					projectApi.util.updateQueryData('getProjectById', id, () => {
+						return undefined
+					})
+				)
+
+				try {
+					await queryFulfilled
+				} catch {
+					patchList.undo()
+					patchSingle.undo()
+				}
+			},
+		}),
 	}),
 })
 
@@ -87,4 +187,6 @@ export const {
 	useGetProjectsQuery,
 	useGetProjectByIdQuery,
 	useCreateProjectMutation,
+	useUpdateProjectMutation,
+	useDeleteProjectMutation,
 } = projectApi

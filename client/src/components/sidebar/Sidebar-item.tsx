@@ -6,6 +6,7 @@ export interface ISidebarItemProps {
 	icon?: ReactNode
 	isActive: boolean
 	path: string
+	onClick?: () => void
 }
 
 const SidebarItem: FC<ISidebarItemProps> = ({
@@ -13,9 +14,14 @@ const SidebarItem: FC<ISidebarItemProps> = ({
 	isActive,
 	icon,
 	path,
+	onClick,
 }) => {
 	return (
-		<Link to={path} className='flex gap-x-2 items-center text-black/70'>
+		<Link
+			to={path}
+			className='flex gap-x-2 items-center text-black/70'
+			onClick={onClick}
+		>
 			<div
 				className={`w-1 h-[90%] rounded-lg bg-purple-500 ${
 					isActive ? 'opacity-100' : 'opacity-0'

@@ -1,37 +1,55 @@
 import { Types } from 'mongoose';
 import { ErrorMessages } from '../constants/errors';
-import { Project } from '../models/project/project';
-import { IProjectWithStats } from '../models/project/project-with-stats';
-import { User } from '../models/user/user';
+import { Project } from '../models/project';
+import { Task } from '../models/task';
+import { User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
 import {
   CreateProjectBody,
   UpdateProjectBody,
 } from '../types/http/request/project.request';
+import { JwtPayload } from '../types/jwt-payload';
+import { IProjectWithStats } from '../types/project/project-with-stats';
+import { UserRoleEnum } from '../types/user/user-role';
+import { ensureProjectMembership } from '../utils/common';
 import { taskService } from './task.serivice';
 
 export const projectService = {
-  getAll: async (): Promise<IProjectWithStats[]> => {
-    const projects = await Project.find().exec();
+  getAll: async (user?: JwtPayload): Promise<IProjectWithStats[]> => {
+    let projects = [];
+
+    if (user && user.role === UserRoleEnum.MEMBER) {
+      projects = await Project.find({ members: user.id }).exec();
+    } else {
+      projects = await Project.find().exec();
+    }
+
     const projectsWithStats: IProjectWithStats[] = [];
 
     for (const p of projects) {
       projectsWithStats.push({
         ...p.toJSON(),
-        taskCounts: await taskService.countByProject(p._id!.toString()),
+        taskCounts: await taskService.countByProject(p._id.toString()),
       });
     }
 
     return projectsWithStats;
   },
 
-  getById: async (id: string): Promise<IProjectWithStats> => {
+  getById: async (
+    id: string,
+    user?: JwtPayload,
+  ): Promise<IProjectWithStats> => {
     if (!Types.ObjectId.isValid(id))
       throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
 
     const project = await Project.findById(id).exec();
 
     if (!project) throw new AppError(ErrorMessages.PROJECT_NOT_FOUND, 404);
+
+    if (user) {
+      ensureProjectMembership(project.toJSON(), user);
+    }
 
     return {
       ...project.toJSON(),
@@ -108,12 +126,19 @@ export const projectService = {
   },
 
   delete: async (id: string) => {
-    await projectService.getById(id);
+    try {
+      await projectService.getById(id);
 
-    const deleted = await Project.findByIdAndDelete(id).exec();
+      const deletedProject = await Project.findByIdAndDelete(id).exec();
+      if (!deletedProject) {
+        throw new AppError(ErrorMessages.DELETE_ERROR);
+      }
 
-    if (!deleted) throw new AppError(ErrorMessages.DELETE_ERROR);
+      await Task.deleteMany({ projectId: id }).exec();
 
-    return;
+      return;
+    } catch (error) {
+      throw new AppError(ErrorMessages.DELETE_ERROR);
+    }
   },
 };

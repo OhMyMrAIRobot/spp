@@ -1,21 +1,22 @@
-import { NextFunction, Request, Response } from 'express';
-import { IProjectWithStats } from '../models/project/project-with-stats';
+import { NextFunction, Response } from 'express';
 import { projectService } from '../services/project.service';
+import { IAuthRequest } from '../types/http/request/auth.request';
 import {
   CreateProjectBody,
   ProjectParams,
   UpdateProjectBody,
 } from '../types/http/request/project.request';
 import { ApiResponse } from '../types/http/response/api.response';
+import { IProjectWithStats } from '../types/project/project-with-stats';
 
 export const projectController = {
   getAll: async (
-    req: Request,
+    req: IAuthRequest,
     res: Response<ApiResponse<IProjectWithStats[]>>,
     next: NextFunction,
   ) => {
     try {
-      const projects = await projectService.getAll();
+      const projects = await projectService.getAll(req.user);
 
       res.json({ data: projects });
     } catch (err) {
@@ -24,14 +25,14 @@ export const projectController = {
   },
 
   getById: async (
-    req: Request<ProjectParams>,
+    req: IAuthRequest<ProjectParams>,
     res: Response<ApiResponse<IProjectWithStats>>,
     next: NextFunction,
   ) => {
     try {
       const { id } = req.params;
 
-      const project = await projectService.getById(id);
+      const project = await projectService.getById(id, req.user);
 
       res.json({ data: project });
     } catch (err) {
@@ -40,7 +41,7 @@ export const projectController = {
   },
 
   create: async (
-    req: Request<{}, {}, CreateProjectBody>,
+    req: IAuthRequest<{}, {}, CreateProjectBody>,
     res: Response<ApiResponse<IProjectWithStats>>,
     next: NextFunction,
   ) => {
@@ -54,7 +55,7 @@ export const projectController = {
   },
 
   update: async (
-    req: Request<ProjectParams, {}, UpdateProjectBody>,
+    req: IAuthRequest<ProjectParams, {}, UpdateProjectBody>,
     res: Response<ApiResponse<IProjectWithStats>>,
     next: NextFunction,
   ) => {
@@ -70,14 +71,14 @@ export const projectController = {
   },
 
   delete: async (
-    req: Request<ProjectParams>,
+    req: IAuthRequest<ProjectParams>,
     res: Response<ApiResponse<null>>,
     next: NextFunction,
   ) => {
     try {
       await projectService.delete(req.params.id);
 
-      res.status(204).json({ data: null });
+      res.status(204).end();
     } catch (err) {
       next(err);
     }

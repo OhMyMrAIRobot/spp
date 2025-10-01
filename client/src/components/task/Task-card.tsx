@@ -1,21 +1,27 @@
 import { useState, type FC } from 'react'
+import { useSelector } from 'react-redux'
 import CalendarSvg from '../../assets/svg/Calendar-svg'
 import DeleteSvg from '../../assets/svg/Delete-svg'
 import EditSvg from '../../assets/svg/Edit-svg'
 import UserTickSvg from '../../assets/svg/User-tick-svg'
 import { useDeleteTaskMutation } from '../../store/services/task-api-service'
+import type { RootState } from '../../store/store'
 import type { ITask } from '../../types/tasks/task'
+import type { ITaskWithUser } from '../../types/tasks/task-with-user'
+import { UserRoleEnum } from '../../types/user/user-role-enum'
 import { dateUtils } from '../../utils/date-util'
 import SkeletonLoader from '../loaders/Skeleton-loader'
 import ConfirmationModal from '../modal/Confirmation-modal'
 
 interface IProps {
-	task?: ITask
+	task?: ITaskWithUser
 	onEditModal?: (task: ITask) => void
 	isLoading: boolean
 }
 
 const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
+	const { user } = useSelector((state: RootState) => state.auth)
+
 	const [modalOpen, setModalOpen] = useState<boolean>(false)
 
 	const [deleteTask] = useDeleteTaskMutation()
@@ -51,7 +57,7 @@ const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 
 					<div className='text-sm flex items-center gap-x-1 mb-2'>
 						<UserTickSvg className='size-5' />
-						<span className='font-medium'>{task.assignee}</span>
+						<span className='font-medium'>{task.user.username}</span>
 					</div>
 				</div>
 
@@ -63,23 +69,25 @@ const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 						</div>
 					)}
 
-					<div className='flex gap-2 mt-1 ml-auto'>
-						<button
-							onClick={() => onEditModal?.(task)}
-							className='p-2 rounded hover:bg-black/10 transition-colors duration-200'
-							title='Edit Task'
-						>
-							<EditSvg className={'size-5 stroke-black'} />
-						</button>
+					{(user?.role === UserRoleEnum.ADMIN || user?.id === task.user.id) && (
+						<div className='flex gap-2 mt-1 ml-auto'>
+							<button
+								onClick={() => onEditModal?.(task)}
+								className='p-2 rounded hover:bg-black/10 transition-colors duration-200'
+								title='Edit Task'
+							>
+								<EditSvg className={'size-5 stroke-black'} />
+							</button>
 
-						<button
-							onClick={() => setModalOpen(true)}
-							className='p-2 rounded hover:bg-red-300 transition-colors duration-200'
-							title='Delete Task'
-						>
-							<DeleteSvg className={'size-5 stroke-black'} />
-						</button>
-					</div>
+							<button
+								onClick={() => setModalOpen(true)}
+								className='p-2 rounded hover:bg-red-100 transition-colors duration-200'
+								title='Delete Task'
+							>
+								<DeleteSvg className={'size-5 stroke-black'} />
+							</button>
+						</div>
+					)}
 				</div>
 			</div>
 		</>

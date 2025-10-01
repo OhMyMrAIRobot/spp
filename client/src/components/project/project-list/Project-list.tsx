@@ -1,5 +1,9 @@
 import { useState } from 'react'
+import { useSelector } from 'react-redux'
 import { useGetProjectsQuery } from '../../../store/services/project-api-service'
+import type { RootState } from '../../../store/store'
+import type { IProject } from '../../../types/projects/project'
+import { UserRoleEnum } from '../../../types/user/user-role-enum'
 import FormButton from '../../buttons/Form-button'
 import SkeletonLoader from '../../loaders/Skeleton-loader'
 import ProjectCard from './Project-card'
@@ -9,15 +13,28 @@ const ProjectList = () => {
 	const { data: projects, isLoading: isProjectsLoading } = useGetProjectsQuery()
 
 	const [modalOpen, setModalOpen] = useState<boolean>(false)
+	const [project, setProject] = useState<IProject | null>(null)
+
+	const { user } = useSelector((state: RootState) => state.auth)
+
+	if (!user) return null
 
 	return (
 		<>
-			<ProjectModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+			{user.role === UserRoleEnum.ADMIN && (
+				<ProjectModal
+					isOpen={modalOpen}
+					onClose={() => setModalOpen(false)}
+					project={project}
+				/>
+			)}
 
 			<div className='size-full p-6'>
 				{/* Header */}
 				<div className='flex items-center justify-between mb-6'>
-					<h1 className='text-2xl font-bold text-black'>My Projects</h1>
+					<h1 className='text-2xl font-bold text-black'>
+						{user.role === UserRoleEnum.ADMIN ? 'All Projects' : 'My Projects'}
+					</h1>
 
 					<div className='flex gap-5 items-center'>
 						{isProjectsLoading ? (
@@ -28,11 +45,16 @@ const ProjectList = () => {
 							</span>
 						)}
 
-						<FormButton
-							onClick={() => setModalOpen(true)}
-							title={'Add Project'}
-							disabled={isProjectsLoading}
-						/>
+						{user.role === UserRoleEnum.ADMIN && (
+							<FormButton
+								onClick={() => {
+									setProject(null)
+									setModalOpen(true)
+								}}
+								title={'Add Project'}
+								disabled={isProjectsLoading}
+							/>
+						)}
 					</div>
 				</div>
 
@@ -52,6 +74,10 @@ const ProjectList = () => {
 										key={project.id}
 										project={project}
 										isLoading={false}
+										onEditClick={() => {
+											setProject(project)
+											setModalOpen(true)
+										}}
 									/>
 								)
 						  })}

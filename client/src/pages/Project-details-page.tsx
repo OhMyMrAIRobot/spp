@@ -59,13 +59,22 @@ const ProjectDetailsPage = () => {
 				{/* HEADER */}
 				<div className='flex gap-5 items-top border-b border-black/5 pb-5'>
 					<div className='grid gap-y-1'>
-						{!project ? (
-							<SkeletonLoader className={'w-40 h-7 rounded-lg'} />
+						{!project || isLoading ? (
+							<>
+								<SkeletonLoader className={'w-40 h-7 rounded-lg'} />
+
+								<SkeletonLoader className={'w-96 h-10 mt-1 rounded-lg'} />
+							</>
 						) : (
-							<h2 className='text-[24px] font-bold'>{project.title}</h2>
+							<>
+								<h2 className='text-[24px] font-bold'>{project.title}</h2>
+								<h6 className='text-black/50 text-sm'>
+									{project?.description}
+								</h6>
+							</>
 						)}
 
-						<h6 className='text-black/50 text-sm'>{project?.description}</h6>
+						{}
 					</div>
 
 					<div className='w-fit ml-auto'>

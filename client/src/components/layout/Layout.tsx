@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import Sidebar from './sidebar/Sidebar'
-
+import Sidebar from '../sidebar/Sidebar'
 const Layout = () => {
 	return (
 		<div className='flex overflow-hidden min-h-screen bg-black/5 py-4 pr-4'>

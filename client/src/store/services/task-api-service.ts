@@ -1,31 +1,42 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import type { ApiResponse } from '../../types/api-response'
 import type { CreateTaskData } from '../../types/tasks/create-task-data'
-import type { ITask } from '../../types/tasks/task'
+import type { ITaskWithUser } from '../../types/tasks/task-with-user'
+import { UserRoleEnum } from '../../types/user/user-role-enum'
 import { projectApi } from './project-api-service'
 
 const SERVER_URL = import.meta.env.VITE_API_URL
 
 export const taskApi = createApi({
 	reducerPath: 'TaskApi',
-	baseQuery: fetchBaseQuery({ baseUrl: SERVER_URL }),
+	baseQuery: fetchBaseQuery({
+		baseUrl: SERVER_URL,
+		prepareHeaders: headers => {
+			const token = localStorage.getItem('token')
+			if (token) {
+				headers.set('Authorization', `Bearer ${token}`)
+			}
+			return headers
+		},
+	}),
 	endpoints: builder => ({
-		getTasksByProject: builder.query<ITask[], string>({
+		getTasksByProject: builder.query<ITaskWithUser[], string>({
 			query: projectId => `/tasks/project/${projectId}`,
-			transformResponse: (response: ApiResponse<ITask[]>) =>
+			transformResponse: (response: ApiResponse<ITaskWithUser[]>) =>
 				response.data ?? [],
 		}),
 
-		createTask: builder.mutation<ITask | undefined, CreateTaskData>({
+		createTask: builder.mutation<ITaskWithUser | undefined, CreateTaskData>({
 			query: body => ({
 				url: '/tasks',
 				method: 'POST',
 				body,
 			}),
-			transformResponse: (response: ApiResponse<ITask>) => response.data,
+			transformResponse: (response: ApiResponse<ITaskWithUser>) =>
+				response.data,
 			async onQueryStarted(body, { dispatch, queryFulfilled }) {
 				const tempId = `temp-${Date.now()}`
-				const tempTask: ITask = {
+				const tempTask: ITaskWithUser = {
 					id: tempId,
 					title: body.title,
 					description: body.description,
@@ -34,6 +45,11 @@ export const taskApi = createApi({
 					status: body.status,
 					projectId: body.projectId,
 					createdAt: new Date().toISOString(),
+					user: {
+						id: '0',
+						role: UserRoleEnum.MEMBER,
+						username: localStorage.getItem('username') ?? 'Unknown',
+					},
 				}
 
 				const patchTasksByProject = dispatch(
@@ -75,7 +91,7 @@ export const taskApi = createApi({
 		}),
 
 		updateTask: builder.mutation<
-			ITask | undefined,
+			ITaskWithUser | undefined,
 			{ id: string; projectId: string; changes: Partial<CreateTaskData> }
 		>({
 			query: ({ id, changes }) => ({
@@ -83,7 +99,8 @@ export const taskApi = createApi({
 				method: 'PATCH',
 				body: changes,
 			}),
-			transformResponse: (response: ApiResponse<ITask>) => response.data,
+			transformResponse: (response: ApiResponse<ITaskWithUser>) =>
+				response.data,
 			async onQueryStarted(
 				{ id, projectId, changes },
 				{ dispatch, queryFulfilled }

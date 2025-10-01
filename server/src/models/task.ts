@@ -1,19 +1,19 @@
-import mongoose, { Schema, Types } from 'mongoose';
-import { toJSONOptions } from '../../utils/common';
-import { TaskStatusEnum } from './task-status';
+import mongoose, { Schema } from 'mongoose';
+import { TaskStatusEnum } from '../types/task/task-status';
+import { toJSONOptions } from '../utils/common';
 
 export interface ITask {
-  _id?: string;
+  id: string;
   title: string;
   description: string;
   status: TaskStatusEnum;
-  assignee: string | Types.ObjectId;
+  assignee: string;
   createdAt: string;
   dueDate?: string;
-  projectId: string | Types.ObjectId;
+  projectId: string;
 }
 
-const TaskSchema: Schema = new Schema<ITask>(
+const TaskSchema: Schema = new Schema(
   {
     title: { type: String, required: true },
     description: { type: String, required: true },

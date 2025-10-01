@@ -1,8 +1,8 @@
 import { Types } from 'mongoose';
 import { ErrorMessages } from '../constants/errors';
-import { IUser, User } from '../models/user/user';
-import { UserRoleEnum } from '../models/user/user-role';
+import { IUser, User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
+import { UserRoleEnum } from '../types/user/user-role';
 
 export const userService = {
   getAll: async (): Promise<IUser[]> => User.find().exec(),
@@ -15,23 +15,23 @@ export const userService = {
 
     if (!user) throw new AppError(ErrorMessages.USER_NOT_FOUND, 404);
 
-    return user;
+    return user.toJSON();
   },
 
   create: async (data: {
     username: string;
     passwordHash: string;
-    role?: UserRoleEnum;
+    role: UserRoleEnum;
   }): Promise<IUser> => {
     await userService.ensureUniqueUsername(data.username);
 
     const user = new User({
       username: data.username,
       passwordHash: data.passwordHash,
-      role: data.role || UserRoleEnum.MEMBER,
+      role: data.role,
     });
 
-    return user.save();
+    return (await user.save()).toJSON();
   },
 
   update: async (
@@ -54,7 +54,7 @@ export const userService = {
 
     if (!updated) throw new AppError(ErrorMessages.UPDATE_ERROR);
 
-    return updated;
+    return updated.toJSON();
   },
 
   delete: async (id: string) => {

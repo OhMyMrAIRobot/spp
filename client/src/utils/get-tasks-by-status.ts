@@ -1,9 +1,9 @@
-import type { ITask } from '../types/tasks/task'
 import type { TaskStatusEnum } from '../types/tasks/task-status-enum'
+import type { ITaskWithUser } from '../types/tasks/task-with-user'
 
 export const getTasksByStatus = (
-	tasks: ITask[],
+	tasks: ITaskWithUser[],
 	status: TaskStatusEnum
-): ITask[] => {
+): ITaskWithUser[] => {
 	return tasks.filter(t => t.status === status)
 }

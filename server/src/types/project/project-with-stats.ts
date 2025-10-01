@@ -1,4 +1,4 @@
-import { IProject } from './project';
+import { IProject } from '../../models/project';
 
 export interface IProjectWithStats extends IProject {
   taskCounts: {

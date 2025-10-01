@@ -1,9 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
-import { toJSONOptions } from '../../utils/common';
-import { UserRoleEnum } from './user-role';
+import { UserRoleEnum } from '../types/user/user-role';
+import { toJSONOptions } from '../utils/common';
 
 export interface IUser {
-  _id?: string;
+  id: string;
   username: string;
   passwordHash: string;
   role: UserRoleEnum;

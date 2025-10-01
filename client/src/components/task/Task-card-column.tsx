@@ -1,11 +1,12 @@
 import type { FC } from 'react'
 import type { ITask } from '../../types/tasks/task'
+import type { ITaskWithUser } from '../../types/tasks/task-with-user'
 import SkeletonLoader from '../loaders/Skeleton-loader'
 import TaskCard from './Task-card'
 
 interface IProps {
 	title: string
-	tasks: ITask[]
+	tasks: ITaskWithUser[]
 	onEditModal: (task: ITask) => void
 	isLoading: boolean
 }
