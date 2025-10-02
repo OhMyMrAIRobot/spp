@@ -4,6 +4,7 @@ import {
 	createSlice,
 	type PayloadAction,
 } from '@reduxjs/toolkit'
+import type { ApiResponse } from '../../types/api-response'
 import type { IAuthResponse } from '../../types/auth/auth-response'
 import type { ILoginData } from '../../types/auth/login-data'
 import type { IRegisterData } from '../../types/auth/register-data'
@@ -29,9 +30,9 @@ export const checkAuth = createAsyncThunk<IAuthResponse, void>(
 			if (response.data.data) {
 				return response.data.data
 			}
-			return rejectWithValue(response.data.message || 'Unauthorized!')
+			return rejectWithValue(response.data)
 		} catch (err: any) {
-			return rejectWithValue(err.response?.data?.message || 'Unauthorized!')
+			return rejectWithValue(err.response?.data || { message: 'Unauthorized!' })
 		}
 	}
 )
@@ -45,9 +46,11 @@ export const login = createAsyncThunk<IAuthResponse, ILoginData>(
 			if (response.data.data) {
 				return response.data.data
 			}
-			return rejectWithValue(response.data.message || 'Sign in error!')
+			return rejectWithValue(response.data)
 		} catch (err: any) {
-			return rejectWithValue(err.response?.data?.message || 'Sign in error!')
+			return rejectWithValue(
+				err.response?.data || { message: 'Sign in error!' }
+			)
 		}
 	}
 )
@@ -61,9 +64,12 @@ export const register = createAsyncThunk<IAuthResponse, IRegisterData>(
 			if (response.data.data) {
 				return response.data.data
 			}
-			return rejectWithValue(response.data.message || 'Sign up error!')
+
+			return rejectWithValue(response.data)
 		} catch (err: any) {
-			return rejectWithValue(err.response?.data?.message || 'Sign up error!')
+			return rejectWithValue(
+				err.response?.data || { message: 'Sign up error!' }
+			)
 		}
 	}
 )
@@ -80,6 +86,9 @@ export const authSlice = createSlice({
 			state.error = null
 			localStorage.removeItem('token')
 			localStorage.removeItem('username')
+		},
+		clearError(state) {
+			state.error = null
 		},
 	},
 	extraReducers: builder => {
@@ -103,7 +112,7 @@ export const authSlice = createSlice({
 		builder.addCase(checkAuth.rejected, (state, action) => {
 			state.globalLoading = false
 			state.loading = false
-			state.error = action.payload as string
+			state.error = action.payload as ApiResponse<null> | null
 			state.token = null
 			state.user = null
 			localStorage.removeItem('token')
@@ -130,7 +139,7 @@ export const authSlice = createSlice({
 		builder.addCase(login.rejected, (state, action) => {
 			state.globalLoading = false
 			state.loading = false
-			state.error = action.payload as string
+			state.error = action.payload as ApiResponse<null> | null
 		})
 
 		// register
@@ -153,10 +162,10 @@ export const authSlice = createSlice({
 		builder.addCase(register.rejected, (state, action) => {
 			state.globalLoading = false
 			state.loading = false
-			state.error = action.payload as string
+			state.error = action.payload as ApiResponse<null> | null
 		})
 	},
 })
 
-export const { logout } = authSlice.actions
+export const { logout, clearError } = authSlice.actions
 export default authSlice.reducer

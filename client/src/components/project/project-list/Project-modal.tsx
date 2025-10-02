@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FC } from 'react'
+import toast from 'react-hot-toast'
 import {
 	useCreateProjectMutation,
 	useUpdateProjectMutation,
 } from '../../../store/services/project-api-service'
 import { useGetUsersQuery } from '../../../store/services/user-api-service'
+import type { ApiError } from '../../../types/api-errors'
 import type { CreateProjectData } from '../../../types/projects/create-project-data'
 import type { IProject } from '../../../types/projects/project'
 import type { IUser } from '../../../types/user/user'
@@ -45,7 +47,7 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose, project }) => {
 		return title.trim() && description.trim()
 	}, [description, title])
 
-	const handleSubmit = async () => {
+	const handleSubmit = () => {
 		if (!isFormValid || isLoading) return
 
 		const data: CreateProjectData = {
@@ -54,16 +56,23 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose, project }) => {
 			members,
 		}
 
-		try {
-			if (project) {
-				updateProject({ id: project.id, changes: data }).unwrap()
+		const promise = project
+			? updateProject({ id: project.id, changes: data }).unwrap()
+			: createProject(data).unwrap()
+
+		promise.catch(err => {
+			const apiError = err as ApiError
+
+			if (apiError.data?.errors?.length) {
+				apiError.data.errors.forEach(e => toast.error(e.message))
+			} else if (apiError.data?.message) {
+				toast.error(apiError.data.message)
 			} else {
-				createProject(data).unwrap()
+				toast.error('Something went wrong')
 			}
-			onClose()
-		} catch {
-			/* empty */
-		}
+		})
+
+		onClose()
 	}
 
 	const isLoading = isCreating || isUpdating

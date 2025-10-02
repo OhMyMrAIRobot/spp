@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import toast from 'react-hot-toast'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import FormButton from '../components/buttons/Form-button'
 import FormInput from '../components/inputs/Form-input'
 import FormLabel from '../components/labels/Form-label'
 import { ROUTES } from '../routes/routes'
-import { register } from '../store/slices/auth.slice'
+import { clearError, register } from '../store/slices/auth.slice'
 import type { AppDispatch, RootState } from '../store/store'
 
 const RegisterPage = () => {
@@ -22,6 +23,17 @@ const RegisterPage = () => {
 			dispatch(register({ username, password }))
 		}
 	}
+
+	useEffect(() => {
+		if (error) {
+			if (error.errors && error.errors.length > 0) {
+				error.errors.forEach(err => toast.error(err.message))
+			} else if (error.message) {
+				toast.error(error.message)
+			}
+			dispatch(clearError())
+		}
+	}, [dispatch, error])
 
 	const isFormValid = useMemo(() => {
 		return (
@@ -79,8 +91,6 @@ const RegisterPage = () => {
 					placeholder='********'
 				/>
 			</div>
-
-			{error && <p className='text-red-500 text-sm'>{error}</p>}
 
 			<div className='grid gap-2 mt-6'>
 				<FormButton

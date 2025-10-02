@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
+import toast from 'react-hot-toast'
 import {
 	useCreateTaskMutation,
 	useUpdateTaskMutation,
 } from '../../store/services/task-api-service'
+import type { ApiError } from '../../types/api-errors'
 import type { ITask } from '../../types/tasks/task'
 import { TaskStatusEnum } from '../../types/tasks/task-status-enum'
 import FormButton from '../buttons/Form-button'
@@ -57,39 +59,44 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 		)
 	}, [date, desc, status, task, title])
 
-	const handleSubmit = async () => {
+	const handleSubmit = () => {
 		if (!isFormValid || !hasChanges) return
 
-		try {
-			if (task) {
-				const changes: Partial<ITask> = {}
+		let promise
 
-				if (title.trim() !== task.title.trim()) changes.title = title.trim()
-				if (desc.trim() !== task.description.trim())
-					changes.description = desc.trim()
-				if (date !== task.dueDate) changes.dueDate = date ?? undefined
-				if (status !== task.status) changes.status = status
+		if (task) {
+			const changes: Partial<ITask> = {}
 
-				updateTask({
-					id: task.id,
-					projectId,
-					changes,
-				}).unwrap()
-			} else {
-				createTask({
-					title: title.trim(),
-					description: desc.trim(),
+			if (title.trim() !== task.title.trim()) changes.title = title.trim()
+			if (desc.trim() !== task.description.trim())
+				changes.description = desc.trim()
+			if (date !== task.dueDate) changes.dueDate = date ?? undefined
+			if (status !== task.status) changes.status = status
 
-					dueDate: date ?? undefined,
-					status,
-					projectId,
-				}).unwrap()
-			}
-
-			onClose()
-		} catch {
-			/* empty */
+			promise = updateTask({ id: task.id, projectId, changes }).unwrap()
+		} else {
+			promise = createTask({
+				title: title.trim(),
+				description: desc.trim(),
+				dueDate: date ?? undefined,
+				status,
+				projectId,
+			}).unwrap()
 		}
+
+		promise.catch(err => {
+			const apiError = err as ApiError
+
+			if (apiError.data?.errors?.length) {
+				apiError.data.errors.forEach(e => toast.error(e.message))
+			} else if (apiError.data?.message) {
+				toast.error(apiError.data.message)
+			} else {
+				toast.error('Something went wrong')
+			}
+		})
+
+		onClose()
 	}
 
 	return (

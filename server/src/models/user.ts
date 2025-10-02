@@ -10,8 +10,22 @@ export interface IUser {
 }
 
 const UserSchema: Schema = new Schema<IUser>({
-  username: { type: String, required: true, unique: true },
-  passwordHash: { type: String, required: true },
+  username: {
+    type: String,
+    required: [true, 'Username is required'],
+    unique: true,
+    trim: true,
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [20, 'Username cannot exceed 20 characters'],
+    match: [
+      /^[a-zA-Z0-9_]+$/,
+      'Username can only contain letters, numbers and underscores',
+    ],
+  },
+  passwordHash: {
+    type: String,
+    required: [true, 'Password hash is required'],
+  },
   role: {
     type: String,
     enum: Object.values(UserRoleEnum),

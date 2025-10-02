@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Toaster } from 'react-hot-toast'
 import {
 	Provider as ReduxProvider,
 	useDispatch,
@@ -37,6 +38,7 @@ function App() {
 		<ReduxProvider store={store}>
 			<BrowserRouter>
 				<AppContent />
+				<Toaster position='top-right' />
 			</BrowserRouter>
 		</ReduxProvider>
 	)

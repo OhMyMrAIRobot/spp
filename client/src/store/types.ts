@@ -1,3 +1,4 @@
+import type { ApiResponse } from '../types/api-response'
 import type { IUser } from '../types/user/user'
 
 export interface AuthState {
@@ -5,5 +6,5 @@ export interface AuthState {
 	user: IUser | null
 	globalLoading: boolean
 	loading: boolean
-	error: string | null
+	error: ApiResponse<null> | null
 }

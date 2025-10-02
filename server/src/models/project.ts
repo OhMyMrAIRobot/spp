@@ -11,8 +11,18 @@ export interface IProject {
 
 const ProjectSchema: Schema = new Schema<IProject>(
   {
-    title: { type: String, required: true },
-    description: { type: String },
+    title: {
+      type: String,
+      required: [true, 'Project title is required'],
+      trim: true,
+      minlength: [3, 'Title must be at least 3 characters'],
+      maxlength: [50, 'Title cannot exceed 50 characters'],
+    },
+    description: {
+      type: String,
+      required: [true, 'Description is required'],
+      maxlength: [2000, 'Description cannot exceed 2000 characters'],
+    },
     members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: { createdAt: true, updatedAt: false } },
