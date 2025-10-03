@@ -8,7 +8,7 @@ import type { ApiResponse } from '../../types/api-response'
 import type { IAuthResponse } from '../../types/auth/auth-response'
 import type { ILoginData } from '../../types/auth/login-data'
 import type { IRegisterData } from '../../types/auth/register-data'
-import { isAuthApi, loginApi, registerApi } from '../api'
+import { loginApi, logoutApi, refreshApi, registerApi } from '../api/auth-api'
 import type { AuthState } from '../types'
 
 const token = localStorage.getItem('token')
@@ -21,12 +21,12 @@ const initialState: AuthState = {
 	error: null,
 }
 
-// checkAuth
-export const checkAuth = createAsyncThunk<IAuthResponse, void>(
-	'auth/checkAuth',
+// refresh
+export const refresh = createAsyncThunk<IAuthResponse, void>(
+	'auth/refresh',
 	async (_, { rejectWithValue }) => {
 		try {
-			const response = await isAuthApi()
+			const response = await refreshApi()
 			if (response.data.data) {
 				return response.data.data
 			}
@@ -74,32 +74,60 @@ export const register = createAsyncThunk<IAuthResponse, IRegisterData>(
 	}
 )
 
+// logout
+export const logout = createAsyncThunk(
+	'auth/logout',
+	async (_, { rejectWithValue }) => {
+		try {
+			const response = await logoutApi()
+			if (response.status === 204) {
+				return
+			}
+
+			return rejectWithValue(response.data)
+		} catch (err: any) {
+			return rejectWithValue(err.response?.data || { message: 'Logout error!' })
+		}
+	}
+)
+
 export const authSlice = createSlice({
 	name: 'auth',
 	initialState,
 	reducers: {
-		logout(state) {
-			state.token = null
-			state.user = null
-			state.globalLoading = false
-			state.loading = false
-			state.error = null
-			localStorage.removeItem('token')
-			localStorage.removeItem('username')
-		},
 		clearError(state) {
 			state.error = null
 		},
 	},
 	extraReducers: builder => {
-		// checkAuth
-		builder.addCase(checkAuth.pending, state => {
+		// logout
+		builder.addCase(logout.pending, state => {
+			state.globalLoading = false
+			state.loading = true
+			state.error = null
+		})
+		builder.addCase(logout.fulfilled, state => {
+			state.globalLoading = false
+			state.loading = false
+			state.token = null
+			state.user = null
+			localStorage.removeItem('token')
+			localStorage.removeItem('username')
+		})
+		builder.addCase(logout.rejected, (state, action) => {
+			state.globalLoading = false
+			state.loading = false
+			state.error = action.payload as ApiResponse<null> | null
+		})
+
+		// refresh
+		builder.addCase(refresh.pending, state => {
 			state.globalLoading = true
 			state.loading = false
 			state.error = null
 		})
 		builder.addCase(
-			checkAuth.fulfilled,
+			refresh.fulfilled,
 			(state, action: PayloadAction<IAuthResponse>) => {
 				state.loading = false
 				state.globalLoading = false
@@ -109,7 +137,7 @@ export const authSlice = createSlice({
 				localStorage.setItem('username', action.payload.user.username)
 			}
 		)
-		builder.addCase(checkAuth.rejected, (state, action) => {
+		builder.addCase(refresh.rejected, (state, action) => {
 			state.globalLoading = false
 			state.loading = false
 			state.error = action.payload as ApiResponse<null> | null
@@ -167,5 +195,5 @@ export const authSlice = createSlice({
 	},
 })
 
-export const { logout, clearError } = authSlice.actions
+export const { clearError } = authSlice.actions
 export default authSlice.reducer

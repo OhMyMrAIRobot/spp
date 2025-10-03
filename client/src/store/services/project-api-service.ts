@@ -1,22 +1,12 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import { createApi } from '@reduxjs/toolkit/query/react'
 import type { ApiResponse } from '../../types/api-response'
 import type { CreateProjectData } from '../../types/projects/create-project-data'
 import type { IProjectWithStats } from '../../types/projects/project-with-stats'
-
-const SERVER_URL = import.meta.env.VITE_API_URL
+import { axiosBaseQuery } from '../api/axios-base-query'
 
 export const projectApi = createApi({
 	reducerPath: 'ProjectApi',
-	baseQuery: fetchBaseQuery({
-		baseUrl: SERVER_URL,
-		prepareHeaders: headers => {
-			const token = localStorage.getItem('token')
-			if (token) {
-				headers.set('Authorization', `Bearer ${token}`)
-			}
-			return headers
-		},
-	}),
+	baseQuery: axiosBaseQuery(),
 	tagTypes: ['Projects'],
 
 	endpoints: builder => ({

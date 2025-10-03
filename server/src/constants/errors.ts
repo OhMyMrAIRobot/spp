@@ -6,7 +6,7 @@ export const ErrorMessages = {
   DELETE_ERROR: 'Error during deleting!',
   INVALID_IDENTIFIER: 'Invalid identifier provided!',
   DUPLICATE_USERNAME: 'User with this username already exists: ',
-  INVALID_CREDENTIALS: 'Invalid credentrials!',
+  INVALID_CREDENTIALS: 'Invalid credentials!',
   UNAUTHORIZED: 'Unathorized!',
   FORBIDDEN: 'Forbidden! You don`t have access to this resource!',
 };

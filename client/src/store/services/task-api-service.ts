@@ -1,24 +1,14 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import { createApi } from '@reduxjs/toolkit/query/react'
 import type { ApiResponse } from '../../types/api-response'
 import type { CreateTaskData } from '../../types/tasks/create-task-data'
 import type { ITaskWithUser } from '../../types/tasks/task-with-user'
 import { UserRoleEnum } from '../../types/user/user-role-enum'
+import { axiosBaseQuery } from '../api/axios-base-query'
 import { projectApi } from './project-api-service'
-
-const SERVER_URL = import.meta.env.VITE_API_URL
 
 export const taskApi = createApi({
 	reducerPath: 'TaskApi',
-	baseQuery: fetchBaseQuery({
-		baseUrl: SERVER_URL,
-		prepareHeaders: headers => {
-			const token = localStorage.getItem('token')
-			if (token) {
-				headers.set('Authorization', `Bearer ${token}`)
-			}
-			return headers
-		},
-	}),
+	baseQuery: axiosBaseQuery(),
 	endpoints: builder => ({
 		getTasksByProject: builder.query<ITaskWithUser[], string>({
 			query: projectId => `/tasks/project/${projectId}`,

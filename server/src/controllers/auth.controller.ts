@@ -10,6 +10,13 @@ import { LoginResponse } from '../types/http/response/login.response';
 import { RegisterResponse } from '../types/http/response/register.response';
 import { UserRoleEnum } from '../types/user/user-role';
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: false,
+  sameSite: 'lax' as const,
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+};
+
 export const authController = {
   register: async (
     req: Request<{}, {}, RegisterRequest>,
@@ -19,13 +26,15 @@ export const authController = {
     try {
       const { username, password } = req.body;
 
-      const { token, user } = await authService.register(
+      const { accessToken, refreshToken, user } = await authService.register(
         username,
         password,
         UserRoleEnum.MEMBER,
       );
 
-      res.json({ data: { token, user } });
+      res.cookie('refreshToken', refreshToken, cookieOptions);
+
+      res.status(201).json({ data: { token: accessToken, user } });
     } catch (err) {
       next(err);
     }
@@ -39,27 +48,57 @@ export const authController = {
     try {
       const { username, password } = req.body;
 
-      const { token, user } = await authService.login(username, password);
+      const { refreshToken, accessToken, user } = await authService.login(
+        username,
+        password,
+      );
 
-      res.json({ data: { token, user } });
+      res.cookie('refreshToken', refreshToken, cookieOptions);
+
+      res.json({ data: { token: accessToken, user } });
     } catch (err) {
       next(err);
     }
   },
 
-  isAuth: async (
-    req: IAuthRequest,
+  refresh: async (
+    req: Request,
     res: Response<ApiResponse<LoginResponse>>,
     next: NextFunction,
   ) => {
+    try {
+      const oldToken = req.cookies['refreshToken'];
+
+      if (!oldToken) {
+        throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
+      }
+
+      const { accessToken, user, refreshToken } =
+        await authService.refresh(oldToken);
+
+      res.cookie('refreshToken', refreshToken, cookieOptions);
+
+      res.json({ data: { token: accessToken, user } });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  logout: async (req: IAuthRequest, res: Response, next: NextFunction) => {
     try {
       if (!req.user) {
         throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
       }
 
-      const { token, user } = await authService.reAuth(req.user.id);
+      await authService.logout(req.user.id);
 
-      res.json({ data: { token, user } });
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax' as const,
+      });
+
+      res.status(204).send();
     } catch (err) {
       next(err);
     }

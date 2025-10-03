@@ -7,7 +7,7 @@ interface IProps {
 
 const SkeletonLoader: FC<IProps> = ({ className, children }) => {
 	return (
-		<div className={`bg-gray-400 animate-pulse opacity-40 ${className}`}>
+		<div className={`bg-gray-300 animate-pulse opacity-50 ${className}`}>
 			{children}
 		</div>
 	)

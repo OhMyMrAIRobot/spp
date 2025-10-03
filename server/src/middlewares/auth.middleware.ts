@@ -1,6 +1,6 @@
 import { NextFunction, Response } from 'express';
 import { ErrorMessages } from '../constants/errors';
-import { authService } from '../services/auth.service';
+import { tokenService } from '../services/token.service';
 import { AppError } from '../types/http/error/app-error';
 import { IAuthRequest } from '../types/http/request/auth.request';
 import { UserRoleEnum } from '../types/user/user-role';
@@ -16,7 +16,7 @@ export const authenticate = (
   const token = header.split(' ')[1];
   if (!token) throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
 
-  const payload = authService.verifyToken(token);
+  const payload = tokenService.verifyAccessToken(token);
   req.user = payload;
   next();
 };

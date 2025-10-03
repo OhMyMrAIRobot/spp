@@ -6,6 +6,7 @@ export interface IUser {
   id: string;
   username: string;
   passwordHash: string;
+  refreshHash: string | null;
   role: UserRoleEnum;
 }
 
@@ -25,6 +26,11 @@ const UserSchema: Schema = new Schema<IUser>({
   passwordHash: {
     type: String,
     required: [true, 'Password hash is required'],
+  },
+  refreshHash: {
+    type: String,
+    default: null,
+    required: false,
   },
   role: {
     type: String,

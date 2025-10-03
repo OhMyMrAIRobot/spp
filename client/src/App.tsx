@@ -8,7 +8,7 @@ import {
 import { BrowserRouter } from 'react-router-dom'
 import Loader from './components/loaders/Loader'
 import AppRoutes from './routes/App-routes'
-import { checkAuth } from './store/slices/auth.slice'
+import { refresh } from './store/slices/auth.slice'
 import { store, type AppDispatch, type RootState } from './store/store'
 
 function AppContent() {
@@ -18,7 +18,7 @@ function AppContent() {
 	useEffect(() => {
 		const token = localStorage.getItem('token')
 		if (token) {
-			dispatch(checkAuth())
+			dispatch(refresh())
 		}
 	}, [dispatch])
 

@@ -1,66 +1,68 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { ErrorMessages } from '../constants/errors';
 import { User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
-import { LoginResponse } from '../types/http/response/login.response';
 import { JwtPayload } from '../types/jwt-payload';
 import { UserRoleEnum } from '../types/user/user-role';
 import { toUserWithoutPassword } from '../utils/common';
+import { tokenService } from './token.service';
 import { userService } from './user.service';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
-const JWT_EXPIRES_IN = '1h';
-
 export const authService = {
-  register: async (
-    username: string,
-    password: string,
-    role: UserRoleEnum,
-  ): Promise<LoginResponse> => {
+  register: async (username: string, password: string, role: UserRoleEnum) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = await userService.create({ username, passwordHash, role });
+    const user = await userService.create({
+      username,
+      passwordHash,
+      role,
+      refreshHash: null,
+    });
 
-    return authService.login(user.username, password);
+    const payload: JwtPayload = { id: user.id, role: user.role } as const;
+    const accessToken = tokenService.generateAccessToken(payload);
+    const refreshToken = tokenService.generateRefreshToken(payload);
+
+    await tokenService.saveRefreshToken(refreshToken, user.id);
+
+    return { accessToken, refreshToken, user: toUserWithoutPassword(user) };
   },
 
-  login: async (username: string, password: string): Promise<LoginResponse> => {
-    const user = await User.findOne({
+  login: async (username: string, password: string) => {
+    const dbuser = await User.findOne({
       username: { $regex: `^${username}$`, $options: 'i' },
     }).exec();
-    if (!user) throw new AppError(ErrorMessages.INVALID_CREDENTIALS, 401);
+    if (!dbuser) throw new AppError(ErrorMessages.INVALID_CREDENTIALS, 401);
+
+    const user = dbuser.toJSON();
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new AppError(ErrorMessages.INVALID_CREDENTIALS, 401);
 
     const payload: JwtPayload = { id: user.id, role: user.role } as const;
+    const accessToken = tokenService.generateAccessToken(payload);
+    const refreshToken = tokenService.generateRefreshToken(payload);
 
-    const token = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    });
+    await tokenService.saveRefreshToken(refreshToken, user.id);
 
-    return { token, user: toUserWithoutPassword(user) };
+    return { accessToken, refreshToken, user: toUserWithoutPassword(user) };
   },
 
-  reAuth: async (userId: string): Promise<LoginResponse> => {
-    const user = await User.findOne({ _id: userId }).exec();
-    if (!user) throw new AppError(ErrorMessages.INVALID_CREDENTIALS, 401);
+  refresh: async (token: string) => {
+    const decoded = await tokenService.verifyRefreshToken(token);
+
+    const user = await userService.getById(decoded.id);
 
     const payload: JwtPayload = { id: user.id, role: user.role } as const;
+    const accessToken = tokenService.generateAccessToken(payload);
+    const refreshToken = tokenService.generateRefreshToken(payload);
 
-    const token = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    });
+    await tokenService.saveRefreshToken(refreshToken, user.id);
 
-    return { token, user: toUserWithoutPassword(user) };
+    return { accessToken, refreshToken, user: toUserWithoutPassword(user) };
   },
 
-  verifyToken: (token: string): JwtPayload => {
-    try {
-      return jwt.verify(token, JWT_SECRET) as JwtPayload;
-    } catch {
-      throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
-    }
+  logout: async (userId: string) => {
+    return tokenService.deleteRefreshToken(userId);
   },
 };

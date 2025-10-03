@@ -95,7 +95,7 @@ export const taskController = {
     try {
       await taskService.delete(req.params.id, req.user);
 
-      res.status(204).end();
+      res.status(204).send();
     } catch (err) {
       next(err);
     }

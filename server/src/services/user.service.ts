@@ -2,7 +2,10 @@ import { Types } from 'mongoose';
 import { ErrorMessages } from '../constants/errors';
 import { IUser, User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
-import { UserRoleEnum } from '../types/user/user-role';
+import {
+  CreateUserBody,
+  UpdateUserBody,
+} from '../types/http/request/user.request';
 
 export const userService = {
   getAll: async (): Promise<IUser[]> => User.find().exec(),
@@ -18,11 +21,7 @@ export const userService = {
     return user.toJSON();
   },
 
-  create: async (data: {
-    username: string;
-    passwordHash: string;
-    role: UserRoleEnum;
-  }): Promise<IUser> => {
+  create: async (data: CreateUserBody): Promise<IUser> => {
     await userService.ensureUniqueUsername(data.username);
 
     const user = new User({
@@ -34,14 +33,7 @@ export const userService = {
     return (await user.save()).toJSON();
   },
 
-  update: async (
-    id: string,
-    changes: Partial<{
-      username: string;
-      passwordHash: string;
-      role: UserRoleEnum;
-    }>,
-  ): Promise<IUser> => {
+  update: async (id: string, changes: UpdateUserBody): Promise<IUser> => {
     await userService.getById(id);
 
     if (changes.username) {

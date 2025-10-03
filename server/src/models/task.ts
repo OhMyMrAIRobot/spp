@@ -39,10 +39,6 @@ const TaskSchema: Schema = new Schema(
     },
     dueDate: {
       type: Date,
-      validate: {
-        validator: (v: Date) => v > new Date(),
-        message: 'Due date must be in the future',
-      },
     },
     projectId: {
       type: Schema.Types.ObjectId,
