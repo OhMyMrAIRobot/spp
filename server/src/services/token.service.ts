@@ -7,7 +7,7 @@ import { userService } from './user.service';
 
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'accesssecret';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refreshsecret';
-const JWT_ACCESS_EXPIRES_IN = '30s';
+const JWT_ACCESS_EXPIRES_IN = '30d';
 const JWT_REFRESH_EXPIRES_IN = '30d';
 
 export const tokenService = {

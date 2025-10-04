@@ -5,10 +5,10 @@ import {
 	useUpdateProjectMutation,
 } from '../../../store/services/project-api-service'
 import { useGetUsersQuery } from '../../../store/services/user-api-service'
-import type { ApiError } from '../../../types/api-errors'
+import type { ApiError } from '../../../types/api/api-error'
 import type { CreateProjectData } from '../../../types/projects/create-project-data'
 import type { IProject } from '../../../types/projects/project'
-import type { IUser } from '../../../types/user/user'
+import type { IUser } from '../../../types/users/user'
 import FormButton from '../../buttons/Form-button'
 import ComboboxSearch from '../../inputs/Combobox-search'
 import FormInput from '../../inputs/Form-input'

@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import { authenticate } from './middlewares/auth.middleware';
 import { errorHandler } from './middlewares/error-handler';
+import attachmentRoutes from './routes/attachment.routes';
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
 import taskRoutes from './routes/task.routes';
@@ -24,6 +25,7 @@ app.use(cookieParser());
 app.use('/projects', authenticate, projectRoutes);
 app.use('/tasks', authenticate, taskRoutes);
 app.use('/users', authenticate, userRoutes);
+app.use('/attachments', authenticate, attachmentRoutes);
 app.use('/auth', authRoutes);
 
 app.use(errorHandler);

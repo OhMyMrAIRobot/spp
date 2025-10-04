@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { ApiResponse } from '../../types/api-response'
-import type { IUser } from '../../types/user/user'
+import type { ApiResponse } from '../../types/api/api-response'
+import type { IUser } from '../../types/users/user'
 import { axiosBaseQuery } from '../api/axios-base-query'
 
 export const userApi = createApi({

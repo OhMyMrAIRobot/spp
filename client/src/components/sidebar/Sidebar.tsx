@@ -7,7 +7,7 @@ import ProfileSvg from '../../assets/svg/Profile-svg'
 import { ROUTES } from '../../routes/routes'
 import { logout } from '../../store/slices/auth.slice'
 import type { AppDispatch, RootState } from '../../store/store'
-import { UserRoleEnum } from '../../types/user/user-role-enum'
+import { UserRoleEnum } from '../../types/users/user-role-enum'
 import SidebarItem, { type ISidebarItemProps } from './Sidebar-item'
 import SidebarSection from './Sidebar-section'
 

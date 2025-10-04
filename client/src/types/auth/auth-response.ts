@@ -1,4 +1,4 @@
-import type { IUser } from '../user/user'
+import type { IUser } from '../users/user'
 
 export interface IAuthResponse {
 	user: IUser

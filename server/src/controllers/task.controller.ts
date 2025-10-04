@@ -1,5 +1,4 @@
 import { NextFunction, Response } from 'express';
-import { ITask } from '../models/task';
 import { taskService } from '../services/task.serivice';
 import { IAuthRequest } from '../types/http/request/auth.request';
 import {
@@ -8,11 +7,12 @@ import {
   UpdateTaskBody,
 } from '../types/http/request/task.request';
 import { ApiResponse } from '../types/http/response/api.response';
+import { ITaskResponse } from '../types/http/response/task.response';
 
 export const taskController = {
   getAll: async (
     req: IAuthRequest,
-    res: Response<ApiResponse<ITask[]>>,
+    res: Response<ApiResponse<ITaskResponse[]>>,
     next: NextFunction,
   ) => {
     try {
@@ -26,7 +26,7 @@ export const taskController = {
 
   getById: async (
     req: IAuthRequest<TaskParams>,
-    res: Response<ApiResponse<ITask>>,
+    res: Response<ApiResponse<ITaskResponse>>,
     next: NextFunction,
   ) => {
     try {
@@ -40,7 +40,7 @@ export const taskController = {
 
   getByProject: async (
     req: IAuthRequest<Pick<TaskParams, 'projectId'>>,
-    res: Response<ApiResponse<ITask[]>>,
+    res: Response<ApiResponse<ITaskResponse[]>>,
     next: NextFunction,
   ) => {
     try {
@@ -57,7 +57,7 @@ export const taskController = {
 
   create: async (
     req: IAuthRequest<{}, {}, CreateTaskBody>,
-    res: Response<ApiResponse<ITask>>,
+    res: Response<ApiResponse<ITaskResponse>>,
     next: NextFunction,
   ) => {
     try {
@@ -71,7 +71,7 @@ export const taskController = {
 
   update: async (
     req: IAuthRequest<TaskParams, {}, UpdateTaskBody>,
-    res: Response<ApiResponse<ITask>>,
+    res: Response<ApiResponse<ITaskResponse>>,
     next: NextFunction,
   ) => {
     try {
@@ -89,7 +89,7 @@ export const taskController = {
 
   delete: async (
     req: IAuthRequest<TaskParams>,
-    res: Response<ApiResponse<null>>,
+    res: Response,
     next: NextFunction,
   ) => {
     try {

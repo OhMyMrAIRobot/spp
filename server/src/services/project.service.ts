@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { ErrorMessages } from '../constants/errors';
-import { Project } from '../models/project';
+import { IProject, Project } from '../models/project';
 import { Task } from '../models/task';
 import { User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
@@ -8,14 +8,14 @@ import {
   CreateProjectBody,
   UpdateProjectBody,
 } from '../types/http/request/project.request';
+import { IProjectResponse } from '../types/http/response/project.response';
 import { JwtPayload } from '../types/jwt-payload';
-import { IProjectWithStats } from '../types/project/project-with-stats';
 import { UserRoleEnum } from '../types/user/user-role';
 import { ensureProjectMembership } from '../utils/common';
 import { taskService } from './task.serivice';
 
 export const projectService = {
-  getAll: async (user?: JwtPayload): Promise<IProjectWithStats[]> => {
+  getAll: async (user?: JwtPayload): Promise<IProjectResponse[]> => {
     let projects = [];
 
     if (user && user.role === UserRoleEnum.MEMBER) {
@@ -24,7 +24,7 @@ export const projectService = {
       projects = await Project.find().exec();
     }
 
-    const projectsWithStats: IProjectWithStats[] = [];
+    const projectsWithStats: IProjectResponse[] = [];
 
     for (const p of projects) {
       projectsWithStats.push({
@@ -36,10 +36,7 @@ export const projectService = {
     return projectsWithStats;
   },
 
-  getById: async (
-    id: string,
-    user?: JwtPayload,
-  ): Promise<IProjectWithStats> => {
+  getById: async (id: string, user?: JwtPayload): Promise<IProjectResponse> => {
     if (!Types.ObjectId.isValid(id))
       throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
 
@@ -57,7 +54,22 @@ export const projectService = {
     };
   },
 
-  create: async (body: CreateProjectBody): Promise<IProjectWithStats> => {
+  getByIdRaw: async (id: string, user?: JwtPayload): Promise<IProject> => {
+    if (!Types.ObjectId.isValid(id))
+      throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
+
+    const project = await Project.findById(id).exec();
+
+    if (!project) throw new AppError(ErrorMessages.PROJECT_NOT_FOUND, 404);
+
+    if (user) {
+      ensureProjectMembership(project.toJSON(), user);
+    }
+
+    return project.toJSON();
+  },
+
+  create: async (body: CreateProjectBody): Promise<IProjectResponse> => {
     const members =
       body.members?.filter((id) => Types.ObjectId.isValid(id)) || [];
 
@@ -92,8 +104,8 @@ export const projectService = {
   update: async (
     id: string,
     body: UpdateProjectBody,
-  ): Promise<IProjectWithStats> => {
-    await projectService.getById(id);
+  ): Promise<IProjectResponse> => {
+    await projectService.getByIdRaw(id);
 
     const members =
       body.members?.filter((id) => Types.ObjectId.isValid(id)) || [];
@@ -127,7 +139,7 @@ export const projectService = {
 
   delete: async (id: string) => {
     try {
-      await projectService.getById(id);
+      await projectService.getByIdRaw(id);
 
       const deletedProject = await Project.findByIdAndDelete(id).exec();
       if (!deletedProject) {

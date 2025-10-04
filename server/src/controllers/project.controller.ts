@@ -7,12 +7,12 @@ import {
   UpdateProjectBody,
 } from '../types/http/request/project.request';
 import { ApiResponse } from '../types/http/response/api.response';
-import { IProjectWithStats } from '../types/project/project-with-stats';
+import { IProjectResponse } from '../types/http/response/project.response';
 
 export const projectController = {
   getAll: async (
     req: IAuthRequest,
-    res: Response<ApiResponse<IProjectWithStats[]>>,
+    res: Response<ApiResponse<IProjectResponse[]>>,
     next: NextFunction,
   ) => {
     try {
@@ -26,7 +26,7 @@ export const projectController = {
 
   getById: async (
     req: IAuthRequest<ProjectParams>,
-    res: Response<ApiResponse<IProjectWithStats>>,
+    res: Response<ApiResponse<IProjectResponse>>,
     next: NextFunction,
   ) => {
     try {
@@ -42,7 +42,7 @@ export const projectController = {
 
   create: async (
     req: IAuthRequest<{}, {}, CreateProjectBody>,
-    res: Response<ApiResponse<IProjectWithStats>>,
+    res: Response<ApiResponse<IProjectResponse>>,
     next: NextFunction,
   ) => {
     try {
@@ -56,7 +56,7 @@ export const projectController = {
 
   update: async (
     req: IAuthRequest<ProjectParams, {}, UpdateProjectBody>,
-    res: Response<ApiResponse<IProjectWithStats>>,
+    res: Response<ApiResponse<IProjectResponse>>,
     next: NextFunction,
   ) => {
     try {

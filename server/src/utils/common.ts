@@ -1,7 +1,9 @@
 import { Types } from 'mongoose';
 import { ErrorMessages } from '../constants/errors';
+import { IAttachment } from '../models/attachment';
 import { IProject } from '../models/project';
 import { IUser } from '../models/user';
+import { PublicAttachment } from '../types/attachment/public-attachment';
 import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';
 import { UserRoleEnum } from '../types/user/user-role';
@@ -39,6 +41,16 @@ export const toUserWithoutPassword = (user: IUser): UserWithoutPassword => {
     id: user.id,
     username: user.username,
     role: user.role,
+  };
+};
+
+export const toPublicAttachment = (att: IAttachment): PublicAttachment => {
+  return {
+    id: att.id,
+    originalName: att.originalName,
+    size: att.size,
+    uploadedBy: att.uploadedBy,
+    createdAt: att.createdAt,
   };
 };
 

@@ -1,5 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { ApiResponse } from '../../types/api-response'
+import type { ApiResponse } from '../../types/api/api-response'
 import type { CreateProjectData } from '../../types/projects/create-project-data'
 import type { IProjectWithStats } from '../../types/projects/project-with-stats'
 import { axiosBaseQuery } from '../api/axios-base-query'

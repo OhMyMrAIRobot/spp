@@ -1,8 +1,8 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { ApiResponse } from '../../types/api-response'
+import type { ApiResponse } from '../../types/api/api-response'
 import type { CreateTaskData } from '../../types/tasks/create-task-data'
-import type { ITaskWithUser } from '../../types/tasks/task-with-user'
-import { UserRoleEnum } from '../../types/user/user-role-enum'
+import type { ITaskExtended } from '../../types/tasks/task-extended'
+import { UserRoleEnum } from '../../types/users/user-role-enum'
 import { axiosBaseQuery } from '../api/axios-base-query'
 import { projectApi } from './project-api-service'
 
@@ -10,23 +10,23 @@ export const taskApi = createApi({
 	reducerPath: 'TaskApi',
 	baseQuery: axiosBaseQuery(),
 	endpoints: builder => ({
-		getTasksByProject: builder.query<ITaskWithUser[], string>({
+		getTasksByProject: builder.query<ITaskExtended[], string>({
 			query: projectId => `/tasks/project/${projectId}`,
-			transformResponse: (response: ApiResponse<ITaskWithUser[]>) =>
+			transformResponse: (response: ApiResponse<ITaskExtended[]>) =>
 				response.data ?? [],
 		}),
 
-		createTask: builder.mutation<ITaskWithUser | undefined, CreateTaskData>({
+		createTask: builder.mutation<ITaskExtended | undefined, CreateTaskData>({
 			query: body => ({
 				url: '/tasks',
 				method: 'POST',
 				body,
 			}),
-			transformResponse: (response: ApiResponse<ITaskWithUser>) =>
+			transformResponse: (response: ApiResponse<ITaskExtended>) =>
 				response.data,
 			async onQueryStarted(body, { dispatch, queryFulfilled }) {
 				const tempId = `temp-${Date.now()}`
-				const tempTask: ITaskWithUser = {
+				const tempTask: ITaskExtended = {
 					id: tempId,
 					title: body.title,
 					description: body.description,
@@ -40,6 +40,7 @@ export const taskApi = createApi({
 						role: UserRoleEnum.MEMBER,
 						username: localStorage.getItem('username') ?? 'Unknown',
 					},
+					attachments: [],
 				}
 
 				const patchTasksByProject = dispatch(
@@ -81,7 +82,7 @@ export const taskApi = createApi({
 		}),
 
 		updateTask: builder.mutation<
-			ITaskWithUser | undefined,
+			ITaskExtended | undefined,
 			{ id: string; projectId: string; changes: Partial<CreateTaskData> }
 		>({
 			query: ({ id, changes }) => ({
@@ -89,7 +90,7 @@ export const taskApi = createApi({
 				method: 'PATCH',
 				body: changes,
 			}),
-			transformResponse: (response: ApiResponse<ITaskWithUser>) =>
+			transformResponse: (response: ApiResponse<ITaskExtended>) =>
 				response.data,
 			async onQueryStarted(
 				{ id, projectId, changes },

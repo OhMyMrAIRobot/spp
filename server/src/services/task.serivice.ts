@@ -6,57 +6,84 @@ import {
   CreateTaskBody,
   UpdateTaskBody,
 } from '../types/http/request/task.request';
+import { ITaskResponse } from '../types/http/response/task.response';
 import { JwtPayload } from '../types/jwt-payload';
 import { TaskStatusEnum } from '../types/task/task-status';
-import { ITaskWithUser } from '../types/task/task-with-user';
 import { UserRoleEnum } from '../types/user/user-role';
 import {
   ensureProjectMembership,
+  toPublicAttachment,
   toUserWithoutPassword,
 } from '../utils/common';
+import { attachmentService } from './attachment.service';
 import { projectService } from './project.service';
 import { userService } from './user.service';
 
 export const taskService = {
-  getAll: async (): Promise<ITaskWithUser[]> => {
+  getAll: async (): Promise<ITaskResponse[]> => {
     const tasks = await Task.find().exec();
 
-    const tasksWithUser = await Promise.all(
+    const tasksExt = await Promise.all(
       tasks.map(async (t) => {
         const taskUser = await userService.getById(t.assignee);
-        return { ...t.toJSON(), user: toUserWithoutPassword(taskUser) };
+        const taskAtt = await attachmentService.getByTaskId(t._id.toString());
+        return {
+          ...t.toJSON(),
+          user: toUserWithoutPassword(taskUser),
+          attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
+        };
       }),
     );
 
-    return tasksWithUser;
+    return tasksExt;
   },
 
-  getById: async (id: string, user?: JwtPayload): Promise<ITaskWithUser> => {
+  getById: async (id: string, user?: JwtPayload): Promise<ITaskResponse> => {
     if (!Types.ObjectId.isValid(id))
       throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
 
     const task = await Task.findById(id).exec();
-
     if (!task) throw new AppError(ErrorMessages.TASK_NOT_FOUND, 404);
 
     if (user) {
-      const project = await projectService.getById(task.projectId);
+      const project = await projectService.getByIdRaw(task.projectId);
       ensureProjectMembership(project, user);
       taskService.ensureAccess(task, user);
     }
 
     const taskUser = await userService.getById(task.assignee);
+    const taskAtt = await attachmentService.getByTaskId(task.id);
 
-    return { ...task.toJSON(), user: toUserWithoutPassword(taskUser) };
+    return {
+      ...task.toJSON(),
+      user: toUserWithoutPassword(taskUser),
+      attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
+    };
+  },
+
+  getByIdRaw: async (id: string, user?: JwtPayload): Promise<ITask> => {
+    if (!Types.ObjectId.isValid(id))
+      throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
+
+    const task = await Task.findById(id).exec();
+    if (!task) throw new AppError(ErrorMessages.TASK_NOT_FOUND, 404);
+
+    if (user) {
+      const project = await projectService.getByIdRaw(task.projectId);
+      ensureProjectMembership(project, user);
+      taskService.ensureAccess(task, user);
+    }
+
+    return task.toJSON();
   },
 
   getByProjectId: async (
     projectId: string,
     user?: JwtPayload,
-  ): Promise<ITask[]> => {
+  ): Promise<ITaskResponse[]> => {
     if (!Types.ObjectId.isValid(projectId)) return [];
 
-    const project = await projectService.getById(projectId);
+    const project = await projectService.getByIdRaw(projectId);
 
     if (user) {
       ensureProjectMembership(project, user);
@@ -66,24 +93,29 @@ export const taskService = {
       projectId: new Types.ObjectId(projectId),
     }).exec();
 
-    const tasksWithUser = await Promise.all(
+    const tasksExt = await Promise.all(
       tasks.map(async (t) => {
         const taskUser = await userService.getById(t.assignee);
-        return { ...t.toJSON(), user: toUserWithoutPassword(taskUser) };
+        const taskAtt = await attachmentService.getByTaskId(t._id.toString());
+        return {
+          ...t.toJSON(),
+          user: toUserWithoutPassword(taskUser),
+          attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
+        };
       }),
     );
 
-    return tasksWithUser;
+    return tasksExt;
   },
 
   create: async (
     data: CreateTaskBody,
     user?: JwtPayload,
-  ): Promise<ITaskWithUser> => {
+  ): Promise<ITaskResponse> => {
     if (!user) throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
 
     await userService.getById(user.id);
-    const project = await projectService.getById(data.projectId);
+    const project = await projectService.getByIdRaw(data.projectId);
     ensureProjectMembership(project, user);
 
     const task = new Task({
@@ -96,18 +128,22 @@ export const taskService = {
 
     const taskUser = await userService.getById(task.assignee);
 
-    return { ...task.toJSON(), user: toUserWithoutPassword(taskUser) };
+    return {
+      ...task.toJSON(),
+      user: toUserWithoutPassword(taskUser),
+      attachments: [],
+    };
   },
 
   update: async (
     id: string,
     changes: UpdateTaskBody,
     user?: JwtPayload,
-  ): Promise<ITaskWithUser> => {
-    const task = await taskService.getById(id);
+  ): Promise<ITaskResponse> => {
+    const task = await taskService.getByIdRaw(id);
 
     if (user) {
-      const project = await projectService.getById(task.projectId);
+      const project = await projectService.getByIdRaw(task.projectId);
       ensureProjectMembership(project, user);
       taskService.ensureAccess(task, user);
     }
@@ -121,15 +157,20 @@ export const taskService = {
     }
 
     const taskUser = await userService.getById(updated.assignee);
+    const taskAtt = await attachmentService.getByTaskId(task.id);
 
-    return { ...updated.toJSON(), user: toUserWithoutPassword(taskUser) };
+    return {
+      ...updated.toJSON(),
+      user: toUserWithoutPassword(taskUser),
+      attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
+    };
   },
 
   delete: async (id: string, user?: JwtPayload) => {
-    const task = await taskService.getById(id);
+    const task = await taskService.getByIdRaw(id);
 
     if (user) {
-      const project = await projectService.getById(task.projectId);
+      const project = await projectService.getByIdRaw(task.projectId);
       ensureProjectMembership(project, user);
       taskService.ensureAccess(task, user);
     }

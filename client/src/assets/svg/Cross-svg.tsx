@@ -1,23 +1,23 @@
 import type { FC } from 'react'
 import type { ISvgProps } from '../../types/svg-props'
 
-const UserTickSvg: FC<ISvgProps> = ({ className }) => {
+const CrossSvg: FC<ISvgProps> = ({ className }) => {
 	return (
 		<svg
-			viewBox='0 0 24 24'
+			viewBox='-0.5 0 25 25'
 			fill='none'
 			xmlns='http://www.w3.org/2000/svg'
 			className={className}
 		>
 			<path
-				d='M12.1992 12C14.9606 12 17.1992 9.76142 17.1992 7C17.1992 4.23858 14.9606 2 12.1992 2C9.43779 2 7.19922 4.23858 7.19922 7C7.19922 9.76142 9.43779 12 12.1992 12Z'
+				d='M3 21.32L21 3.32001'
 				stroke='currentColor'
 				strokeWidth='1.5'
 				strokeLinecap='round'
 				strokeLinejoin='round'
 			></path>
 			<path
-				d='M3 22C3.57038 20.0332 4.74796 18.2971 6.3644 17.0399C7.98083 15.7827 9.95335 15.0687 12 15C16.12 15 19.63 17.91 21 22'
+				d='M3 3.32001L21 21.32'
 				stroke='currentColor'
 				strokeWidth='1.5'
 				strokeLinecap='round'
@@ -27,4 +27,4 @@ const UserTickSvg: FC<ISvgProps> = ({ className }) => {
 	)
 }
 
-export default UserTickSvg
+export default CrossSvg

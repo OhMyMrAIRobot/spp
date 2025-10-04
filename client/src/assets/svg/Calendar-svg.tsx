@@ -9,15 +9,24 @@ const CalendarSvg: FC<ISvgProps> = ({ className }) => {
 			xmlns='http://www.w3.org/2000/svg'
 			className={className}
 		>
-			<g
-				id='SVGRepo_tracerCarrier'
+			<path
+				d='M16 3.98999H8C6.93913 3.98999 5.92178 4.41135 5.17163 5.1615C4.42149 5.91164 4 6.92912 4 7.98999V17.99C4 19.0509 4.42149 20.0682 5.17163 20.8184C5.92178 21.5685 6.93913 21.99 8 21.99H16C17.0609 21.99 18.0783 21.5685 18.8284 20.8184C19.5786 20.0682 20 19.0509 20 17.99V7.98999C20 6.92912 19.5786 5.91164 18.8284 5.1615C18.0783 4.41135 17.0609 3.98999 16 3.98999Z'
+				stroke='currentColor'
+				strokeWidth='1.5'
 				strokeLinecap='round'
 				strokeLinejoin='round'
-			></g>
+			></path>
 			<path
-				d='M3 10H21M7 3V5M17 3V5M6.2 21H17.8C18.9201 21 19.4802 21 19.908 20.782C20.2843 20.5903 20.5903 20.2843 20.782 19.908C21 19.4802 21 18.9201 21 17.8V8.2C21 7.07989 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V17.8C3 18.9201 3 19.4802 3.21799 19.908C3.40973 20.2843 3.71569 20.5903 4.09202 20.782C4.51984 21 5.07989 21 6.2 21Z'
+				d='M9 2V7'
 				stroke='currentColor'
-				strokeWidth='2'
+				strokeWidth='1.5'
+				strokeLinecap='round'
+				strokeLinejoin='round'
+			></path>
+			<path
+				d='M15 2V7'
+				stroke='currentColor'
+				strokeWidth='1.5'
 				strokeLinecap='round'
 				strokeLinejoin='round'
 			></path>

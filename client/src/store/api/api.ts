@@ -1,5 +1,5 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
-import type { ApiResponse } from '../../types/api-response'
+import type { ApiResponse } from '../../types/api/api-response'
 import type { IAuthResponse } from '../../types/auth/auth-response'
 
 const API_URL = import.meta.env.VITE_API_URL

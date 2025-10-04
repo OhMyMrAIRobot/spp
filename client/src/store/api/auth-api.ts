@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { ApiResponse } from '../../types/api-response'
+import type { ApiResponse } from '../../types/api/api-response'
 import type { IAuthResponse } from '../../types/auth/auth-response'
 import type { ILoginData } from '../../types/auth/login-data'
 import type { IRegisterData } from '../../types/auth/register-data'

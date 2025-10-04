@@ -4,7 +4,7 @@ import {
 	useCreateTaskMutation,
 	useUpdateTaskMutation,
 } from '../../store/services/task-api-service'
-import type { ApiError } from '../../types/api-errors'
+import type { ApiError } from '../../types/api/api-error'
 import type { ITask } from '../../types/tasks/task'
 import { TaskStatusEnum } from '../../types/tasks/task-status-enum'
 import FormButton from '../buttons/Form-button'
