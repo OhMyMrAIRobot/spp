@@ -1,23 +1,31 @@
 import { useState, type FC } from 'react'
 import toast from 'react-hot-toast'
+import { useSelector } from 'react-redux'
 import CrossSvg from '../../assets/svg/Cross-svg'
 import DownloadSvg from '../../assets/svg/Download-svg'
 import FileSvg from '../../assets/svg/File-svg'
 import { downloadAttachmentApi } from '../../store/api/attachment-api'
 import { useDeleteAttachmentMutation } from '../../store/services/attachment-api-service'
+import type { RootState } from '../../store/store'
 import type { IAttachment } from '../../types/attachments/attachment'
+import type { ITask } from '../../types/tasks/task'
+import { UserRoleEnum } from '../../types/users/user-role-enum'
 import { formatBytes } from '../../utils/format-bytes'
 import { getApiErrorMessages } from '../../utils/get-api-error-messages'
 import Loader from '../loaders/Loader'
 
 interface IProps {
 	attachment: IAttachment
-	taskId: string
-	projectId: string
+	task: ITask
 }
 
-const TaskAttachment: FC<IProps> = ({ attachment, taskId, projectId }) => {
+const TaskAttachment: FC<IProps> = ({ attachment, task }) => {
 	const [downloading, setDownloading] = useState(false)
+
+	const { user } = useSelector((state: RootState) => state.auth)
+	const canDelete =
+		task.assignee === user?.id || user?.role === UserRoleEnum.ADMIN
+
 	const [deleteAttachment, { isLoading: deleting }] =
 		useDeleteAttachmentMutation()
 
@@ -54,7 +62,12 @@ const TaskAttachment: FC<IProps> = ({ attachment, taskId, projectId }) => {
 
 	const handleDelete = async () => {
 		try {
-			await deleteAttachment({ id: attachment.id, taskId, projectId }).unwrap()
+			if (!canDelete) return
+			await deleteAttachment({
+				id: attachment.id,
+				taskId: task.id,
+				projectId: task.projectId,
+			}).unwrap()
 			toast.success('Attachment deleted successfully!')
 		} catch (err) {
 			const messages = getApiErrorMessages(err)
@@ -77,15 +90,21 @@ const TaskAttachment: FC<IProps> = ({ attachment, taskId, projectId }) => {
 			<button
 				onClick={handleDelete}
 				disabled={disabled}
-				className='cursor-pointer p-2 hover:bg-black/10 transition-all duration-200 group rounded-lg disabled:opacity-50'
+				className={`p-2 transition-all duration-200 group rounded-lg disabled:opacity-50 ${
+					canDelete ? 'hover:bg-black/10 cursor-pointer' : 'cursor-default'
+				}`}
 				title='Delete attachment'
 			>
 				{deleting ? (
 					<Loader className='size-5 border-black' />
 				) : (
 					<>
-						<FileSvg className={'size-5 group-hover:hidden'} />
-						<CrossSvg className={'size-5 hidden group-hover:block'} />
+						<FileSvg
+							className={`size-5 ${canDelete ? 'group-hover:hidden' : ''}`}
+						/>
+						{canDelete && (
+							<CrossSvg className={'size-5 hidden group-hover:block'} />
+						)}
 					</>
 				)}
 			</button>

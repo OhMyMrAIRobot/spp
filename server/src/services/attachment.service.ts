@@ -27,6 +27,7 @@ export const attachmentService = {
     files: Express.Multer.File[],
     user: JwtPayload,
   ): Promise<IAttachment[]> {
+    // throw new AppError('Drop file test', 500);
     const task = await taskService.getByIdRaw(taskId);
     const project = await projectService.getByIdRaw(task.projectId);
 

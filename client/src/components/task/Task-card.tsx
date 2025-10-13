@@ -153,12 +153,7 @@ const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 				{task.attachments.length > 0 && (
 					<div className='border-t flex px-2 py-1 gap-1 flex-wrap'>
 						{task.attachments.map(att => (
-							<TaskAttachment
-								key={att.id}
-								attachment={att}
-								taskId={task.id}
-								projectId={task.projectId}
-							/>
+							<TaskAttachment key={att.id} attachment={att} task={task} />
 						))}
 					</div>
 				)}

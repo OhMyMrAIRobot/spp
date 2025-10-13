@@ -50,6 +50,12 @@ export const attachmentController = {
 
       res.status(201).json({ data: created.map((c) => toPublicAttachment(c)) });
     } catch (err) {
+      const files = (req.files as Express.Multer.File[]) || [];
+      for (const f of files) {
+        try {
+          await fs.promises.unlink(f.path);
+        } catch {}
+      }
       next(err);
     }
   },
