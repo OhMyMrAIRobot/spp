@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { TaskStatusEnum } from '../types/task/task-status';
+import { TaskStatusEnum } from '../types/task-status';
 import { toJSONOptions } from '../utils/common';
 
 export interface ITask {

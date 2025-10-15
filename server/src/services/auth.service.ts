@@ -1,7 +1,6 @@
 import bcrypt from 'bcrypt';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { User } from '../models/user';
-import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';
 import { UserRoleEnum } from '../types/user/user-role';
 import { toUserWithoutPassword } from '../utils/common';
@@ -32,12 +31,13 @@ export const authService = {
     const dbuser = await User.findOne({
       username: { $regex: `^${username}$`, $options: 'i' },
     }).exec();
-    if (!dbuser) throw new AppError(ErrorMessages.INVALID_CREDENTIALS, 401);
+
+    if (!dbuser) throw new Error(ErrorMessages.INVALID_CREDENTIALS);
 
     const user = dbuser.toJSON();
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) throw new AppError(ErrorMessages.INVALID_CREDENTIALS, 401);
+    if (!valid) throw new Error(ErrorMessages.INVALID_CREDENTIALS);
 
     const payload: JwtPayload = { id: user.id, role: user.role } as const;
     const accessToken = tokenService.generateAccessToken(payload);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TaskStatusEnum } from '../types/task/task-status';
+import { TaskStatusEnum } from '../types/task-status';
 import { objectIdSchema } from './object-id.validation';
 
 export const createTaskSchema = z.object({

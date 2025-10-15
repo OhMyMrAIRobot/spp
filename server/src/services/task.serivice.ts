@@ -1,118 +1,48 @@
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
+import { TaskInput } from '../graphql/inputs/task.inputs';
 import { ITask, Task } from '../models/task';
-import { AppError } from '../types/http/error/app-error';
-import {
-  CreateTaskBody,
-  UpdateTaskBody,
-} from '../types/http/request/task.request';
-import { ITaskResponse } from '../types/http/response/task.response';
 import { JwtPayload } from '../types/jwt-payload';
-import { TaskStatusEnum } from '../types/task/task-status';
+import { TaskStatusEnum } from '../types/task-status';
 import { UserRoleEnum } from '../types/user/user-role';
-import {
-  ensureProjectMembership,
-  toPublicAttachment,
-  toUserWithoutPassword,
-} from '../utils/common';
-import { attachmentService } from './attachment.service';
+import { ensureProjectMembership } from '../utils/common';
 import { projectService } from './project.service';
 import { userService } from './user.service';
 
 export const taskService = {
-  getAll: async (): Promise<ITaskResponse[]> => {
+  getAllRaw: async (): Promise<ITask[]> => {
     const tasks = await Task.find().exec();
-
-    const tasksExt = await Promise.all(
-      tasks.map(async (t) => {
-        const taskUser = await userService.getById(t.assignee);
-        const taskAtt = await attachmentService.getByTaskId(t._id.toString());
-        return {
-          ...t.toJSON(),
-          user: toUserWithoutPassword(taskUser),
-          attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
-        };
-      }),
-    );
-
-    return tasksExt;
-  },
-
-  getById: async (id: string, user?: JwtPayload): Promise<ITaskResponse> => {
-    if (!Types.ObjectId.isValid(id))
-      throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
-
-    const task = await Task.findById(id).exec();
-    if (!task) throw new AppError(ErrorMessages.TASK_NOT_FOUND, 404);
-
-    if (user) {
-      const project = await projectService.getByIdRaw(task.projectId);
-      ensureProjectMembership(project, user);
-      taskService.ensureAccess(task, user);
-    }
-
-    const taskUser = await userService.getById(task.assignee);
-    const taskAtt = await attachmentService.getByTaskId(task.id);
-
-    return {
-      ...task.toJSON(),
-      user: toUserWithoutPassword(taskUser),
-      attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
-    };
+    return tasks.map((t) => t.toJSON());
   },
 
   getByIdRaw: async (id: string, user?: JwtPayload): Promise<ITask> => {
     if (!Types.ObjectId.isValid(id))
-      throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
+      throw new Error(ErrorMessages.INVALID_IDENTIFIER);
 
     const task = await Task.findById(id).exec();
-    if (!task) throw new AppError(ErrorMessages.TASK_NOT_FOUND, 404);
+    if (!task) throw new Error(ErrorMessages.TASK_NOT_FOUND);
 
     if (user) {
       const project = await projectService.getByIdRaw(task.projectId);
       ensureProjectMembership(project, user);
-      taskService.ensureAccess(task, user);
+      taskService.ensureAccess(task.toJSON(), user);
     }
 
     return task.toJSON();
   },
 
-  getByProjectId: async (
-    projectId: string,
-    user?: JwtPayload,
-  ): Promise<ITaskResponse[]> => {
+  getByProjectIdRaw: async (projectId: string): Promise<ITask[]> => {
     if (!Types.ObjectId.isValid(projectId)) return [];
-
-    const project = await projectService.getByIdRaw(projectId);
-
-    if (user) {
-      ensureProjectMembership(project, user);
-    }
 
     const tasks = await Task.find({
       projectId: new Types.ObjectId(projectId),
     }).exec();
 
-    const tasksExt = await Promise.all(
-      tasks.map(async (t) => {
-        const taskUser = await userService.getById(t.assignee);
-        const taskAtt = await attachmentService.getByTaskId(t._id.toString());
-        return {
-          ...t.toJSON(),
-          user: toUserWithoutPassword(taskUser),
-          attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
-        };
-      }),
-    );
-
-    return tasksExt;
+    return tasks.map((t) => t.toJSON());
   },
 
-  create: async (
-    data: CreateTaskBody,
-    user?: JwtPayload,
-  ): Promise<ITaskResponse> => {
-    if (!user) throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
+  create: async (data: TaskInput, user?: JwtPayload): Promise<ITask> => {
+    if (!user) throw new Error(ErrorMessages.UNAUTHORIZED);
 
     await userService.getById(user.id);
     const project = await projectService.getByIdRaw(data.projectId);
@@ -124,22 +54,15 @@ export const taskService = {
       assignee: new Types.ObjectId(user.id),
     });
 
-    task.save();
-
-    const taskUser = await userService.getById(task.assignee);
-
-    return {
-      ...task.toJSON(),
-      user: toUserWithoutPassword(taskUser),
-      attachments: [],
-    };
+    await task.save();
+    return task.toJSON();
   },
 
   update: async (
     id: string,
-    changes: UpdateTaskBody,
+    changes: Partial<TaskInput>,
     user?: JwtPayload,
-  ): Promise<ITaskResponse> => {
+  ): Promise<ITask> => {
     const task = await taskService.getByIdRaw(id);
 
     if (user) {
@@ -153,17 +76,10 @@ export const taskService = {
     }).exec();
 
     if (!updated) {
-      throw new AppError(ErrorMessages.UPDATE_ERROR);
+      throw new Error(ErrorMessages.FAILED_UPDATE_TASK);
     }
 
-    const taskUser = await userService.getById(updated.assignee);
-    const taskAtt = await attachmentService.getByTaskId(task.id);
-
-    return {
-      ...updated.toJSON(),
-      user: toUserWithoutPassword(taskUser),
-      attachments: taskAtt.map((ta) => toPublicAttachment(ta)),
-    };
+    return updated.toJSON();
   },
 
   delete: async (id: string, user?: JwtPayload) => {
@@ -177,7 +93,7 @@ export const taskService = {
 
     const deleted = await Task.findByIdAndDelete(id).exec();
 
-    if (!deleted) throw new AppError(ErrorMessages.DELETE_ERROR);
+    if (!deleted) throw new Error(ErrorMessages.FAILER_DELETE_TASK);
 
     return;
   },
@@ -197,7 +113,7 @@ export const taskService = {
 
   ensureAccess: (task: ITask, user: JwtPayload) => {
     if (user.role !== UserRoleEnum.ADMIN && task.assignee !== user.id) {
-      throw new AppError(ErrorMessages.FORBIDDEN, 403);
+      throw new Error(ErrorMessages.FORBIDDEN);
     }
   },
 };

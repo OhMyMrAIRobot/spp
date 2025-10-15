@@ -1,5 +1,5 @@
 import { NextFunction, Response } from 'express';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { tokenService } from '../services/token.service';
 import { AppError } from '../types/http/error/app-error';
 import { IAuthRequest } from '../types/http/request/auth.request';

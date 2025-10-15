@@ -1,7 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { ErrorMessages } from '../constants/errors';
-import { AppError } from '../types/http/error/app-error';
+import { ErrorMessages } from '../constants/error-messages';
 import { JwtPayload } from '../types/jwt-payload';
 import { userService } from './user.service';
 
@@ -27,7 +26,7 @@ export const tokenService = {
     try {
       return jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload;
     } catch {
-      throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
+      throw new Error(ErrorMessages.UNAUTHORIZED);
     }
   },
 
@@ -38,17 +37,17 @@ export const tokenService = {
       const user = await userService.getById(payload.id);
 
       if (!user.refreshHash) {
-        throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
+        throw new Error(ErrorMessages.UNAUTHORIZED);
       }
 
       const isValid = await bcrypt.compare(token, user.refreshHash);
       if (!isValid) {
-        throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
+        throw new Error(ErrorMessages.UNAUTHORIZED);
       }
 
       return payload;
     } catch {
-      throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
+      throw new Error(ErrorMessages.UNAUTHORIZED);
     }
   },
 

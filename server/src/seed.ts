@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { Project } from './models/project';
 import { Task } from './models/task';
 import { User } from './models/user';
-import { TaskStatusEnum } from './types/task/task-status';
+import { TaskStatusEnum } from './types/task-status';
 import { UserRoleEnum } from './types/user/user-role';
 
 dotenv.config();

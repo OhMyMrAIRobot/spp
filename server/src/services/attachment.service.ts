@@ -1,9 +1,9 @@
 import fs from 'fs/promises';
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { Attachment, type IAttachment } from '../models/attachment';
-import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';
+import { UploadedFile } from '../types/uploaded-file';
 import { ensureProjectMembership } from '../utils/common';
 import { projectService } from './project.service';
 import { taskService } from './task.serivice';
@@ -19,15 +19,14 @@ export const attachmentService = {
 
     const attachments = await Attachment.find({ taskId }).exec();
 
-    return attachments.map((a) => a.toJSON());
+    return attachments.map((a) => a.toJSON() as IAttachment);
   },
 
   async create(
     taskId: string,
-    files: Express.Multer.File[],
+    files: UploadedFile[],
     user: JwtPayload,
   ): Promise<IAttachment[]> {
-    // throw new AppError('Drop file test', 500);
     const task = await taskService.getByIdRaw(taskId);
     const project = await projectService.getByIdRaw(task.projectId);
 
@@ -46,17 +45,17 @@ export const attachmentService = {
 
     const created = await Attachment.insertMany(docs);
 
-    return created.map((c) => c.toJSON());
+    return created.map((c) => c.toJSON() as IAttachment);
   },
 
   async getById(id: string, user?: JwtPayload) {
     if (!Types.ObjectId.isValid(id))
-      throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
+      throw new Error(ErrorMessages.INVALID_IDENTIFIER);
 
     const att = await Attachment.findById(id).exec();
 
     if (!att) {
-      throw new AppError('ATTACHMENT_NOT_FOUND', 404);
+      throw new Error(ErrorMessages.ATTACHMENT_NOT_FOUND);
     }
 
     if (user) {
@@ -64,7 +63,7 @@ export const attachmentService = {
       ensureProjectMembership(project, user);
     }
 
-    return att.toJSON();
+    return att.toJSON() as IAttachment;
   },
 
   async deleteById(id: string, user?: JwtPayload) {
@@ -79,7 +78,7 @@ export const attachmentService = {
       await fs.unlink(att.storagePath);
     } catch (e: any) {
       if (e?.code !== 'ENOENT')
-        throw new AppError(ErrorMessages.DELETE_ERROR, 500);
+        throw new Error(ErrorMessages.FAILED_DELETE_ATTACHMENT);
     }
 
     await Attachment.deleteOne({ _id: id }).exec();

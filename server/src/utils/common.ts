@@ -1,10 +1,7 @@
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
-import { IAttachment } from '../models/attachment';
+import { ErrorMessages } from '../constants/error-messages';
 import { IProject } from '../models/project';
 import { IUser } from '../models/user';
-import { PublicAttachment } from '../types/attachment/public-attachment';
-import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';
 import { UserRoleEnum } from '../types/user/user-role';
 import { UserWithoutPassword } from '../types/user/user-without-password';
@@ -44,16 +41,6 @@ export const toUserWithoutPassword = (user: IUser): UserWithoutPassword => {
   };
 };
 
-export const toPublicAttachment = (att: IAttachment): PublicAttachment => {
-  return {
-    id: att.id,
-    originalName: att.originalName,
-    size: att.size,
-    uploadedBy: att.uploadedBy,
-    createdAt: att.createdAt,
-  };
-};
-
 export const ensureProjectMembership = (
   project: IProject,
   user: JwtPayload,
@@ -63,6 +50,6 @@ export const ensureProjectMembership = (
   const isMember = project.members.some((m) => m === user.id);
 
   if (!isMember) {
-    throw new AppError(ErrorMessages.FORBIDDEN, 403);
+    throw new Error(ErrorMessages.FORBIDDEN);
   }
 };
