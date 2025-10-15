@@ -6,14 +6,14 @@ import CalendarSvg from '../../assets/svg/Calendar-svg'
 import DeleteSvg from '../../assets/svg/Delete-svg'
 import EditSvg from '../../assets/svg/Edit-svg'
 import UserTickSvg from '../../assets/svg/User-tick-svg'
-import { useUploadToTaskMutation } from '../../store/services/attachment-api-service'
-import { useDeleteTaskMutation } from '../../store/services/task-api-service'
+import { useUploadAttachments } from '../../graphql/hooks/use-attachments'
+import { useDeleteTask } from '../../graphql/hooks/use-tasks'
+import { extractApolloErrors } from '../../graphql/utils/apollo-error-handler'
 import type { RootState } from '../../store/store'
 import type { ITask } from '../../types/tasks/task'
 import type { ITaskExtended } from '../../types/tasks/task-extended'
 import { UserRoleEnum } from '../../types/users/user-role-enum'
 import { dateUtils } from '../../utils/date-util'
-import { getApiErrorMessages } from '../../utils/get-api-error-messages'
 import Loader from '../loaders/Loader'
 import SkeletonLoader from '../loaders/Skeleton-loader'
 import ConfirmationModal from '../modal/Confirmation-modal'
@@ -29,9 +29,9 @@ const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 	const { user } = useSelector((state: RootState) => state.auth)
 
 	const [modalOpen, setModalOpen] = useState<boolean>(false)
-	const [deleteTask] = useDeleteTaskMutation()
+	const { deleteTask } = useDeleteTask()
 
-	const [uploadToTask, { isLoading: uploading }] = useUploadToTaskMutation()
+	const { uploadAttachments, loading: uploading } = useUploadAttachments()
 	const fileInputRef = useRef<HTMLInputElement | null>(null)
 
 	if (!task || isLoading)
@@ -39,7 +39,21 @@ const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 
 	const handleDelete = async () => {
 		try {
-			await deleteTask({ id: task.id, projectId: task.projectId }).unwrap()
+			await deleteTask(task.id, task.projectId)
+			toast.success('Task deleted successfully!')
+		} catch (err) {
+			const formattedError = extractApolloErrors(err)
+
+			if (
+				formattedError.validationErrors &&
+				formattedError.validationErrors.length > 0
+			) {
+				formattedError.validationErrors.forEach(validationErr => {
+					toast.error(`${validationErr.field}: ${validationErr.message}`)
+				})
+			} else {
+				toast.error(formattedError.message)
+			}
 		} finally {
 			setModalOpen(false)
 		}
@@ -55,20 +69,22 @@ const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 		if (!files.length) return
 
 		try {
-			await uploadToTask({
-				taskId: task.id,
-				projectId: task.projectId,
-				files,
-			}).unwrap()
+			await uploadAttachments(task.id, task.projectId, files)
 			toast.success(
 				`Attachment${files.length > 1 ? 's' : ''} added successfully!`
 			)
 		} catch (err) {
-			const messages = getApiErrorMessages(err)
-			if (messages.length) {
-				messages.forEach(m => toast.error(m))
+			const formattedError = extractApolloErrors(err)
+
+			if (
+				formattedError.validationErrors &&
+				formattedError.validationErrors.length > 0
+			) {
+				formattedError.validationErrors.forEach(validationErr => {
+					toast.error(`${validationErr.field}: ${validationErr.message}`)
+				})
 			} else {
-				toast.error('Something went wrong')
+				toast.error(formattedError.message)
 			}
 		}
 	}

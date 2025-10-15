@@ -1,3 +1,4 @@
+import { ApolloProvider } from '@apollo/client/react'
 import { useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import {
@@ -7,6 +8,7 @@ import {
 } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 import Loader from './components/loaders/Loader'
+import { apolloClient } from './graphql/apollo-client'
 import AppRoutes from './routes/App-routes'
 import { refresh } from './store/slices/auth.slice'
 import { store, type AppDispatch, type RootState } from './store/store'
@@ -36,10 +38,12 @@ function AppContent() {
 function App() {
 	return (
 		<ReduxProvider store={store}>
-			<BrowserRouter>
-				<AppContent />
-				<Toaster position='top-right' />
-			</BrowserRouter>
+			<ApolloProvider client={apolloClient}>
+				<BrowserRouter>
+					<AppContent />
+					<Toaster position='top-right' />
+				</BrowserRouter>
+			</ApolloProvider>
 		</ReduxProvider>
 	)
 }

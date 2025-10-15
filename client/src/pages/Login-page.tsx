@@ -27,11 +27,14 @@ const LoginPage = () => {
 
 	useEffect(() => {
 		if (error) {
-			if (error.errors && error.errors.length > 0) {
-				error.errors.forEach(err => toast.error(err.message))
-			} else if (error.message) {
+			if (error.validationErrors && error.validationErrors.length > 0) {
+				error.validationErrors.forEach(err => {
+					toast.error(`${err.field}: ${err.message}`)
+				})
+			} else {
 				toast.error(error.message)
 			}
+
 			dispatch(clearError())
 		}
 	}, [dispatch, error])

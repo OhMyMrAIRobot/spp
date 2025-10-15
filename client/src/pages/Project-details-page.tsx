@@ -4,8 +4,8 @@ import FormButton from '../components/buttons/Form-button'
 import SkeletonLoader from '../components/loaders/Skeleton-loader'
 import TaskCardColumn from '../components/task/Task-card-column'
 import TaskModal from '../components/task/Task-modal'
-import { useGetProjectByIdQuery } from '../store/services/project-api-service'
-import { useGetTasksByProjectQuery } from '../store/services/task-api-service'
+import { useGetProjectById } from '../graphql/hooks/use-projects'
+import { useGetTasksByProject } from '../graphql/hooks/use-tasks'
 import type { ITask } from '../types/tasks/task'
 import { TaskStatusEnum } from '../types/tasks/task-status-enum'
 import { getTasksByStatus } from '../utils/get-tasks-by-status'
@@ -15,15 +15,9 @@ const ProjectDetailsPage = () => {
 
 	const projectId = id ?? ''
 
-	const { data: project, isLoading: isProjectLoading } = useGetProjectByIdQuery(
-		projectId,
-		{ skip: !projectId }
-	)
+	const { project, loading: isProjectLoading } = useGetProjectById(projectId)
 
-	const { data: tasks, isLoading: isTasksLoading } = useGetTasksByProjectQuery(
-		projectId,
-		{ skip: !projectId }
-	)
+	const { tasks, loading: isTasksLoading } = useGetTasksByProject(projectId)
 
 	const [modalOpen, setModalOpen] = useState<boolean>(false)
 	const [selectedTask, setSelectedTask] = useState<ITask | null>(null)

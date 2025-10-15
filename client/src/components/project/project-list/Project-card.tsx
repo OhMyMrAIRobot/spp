@@ -3,8 +3,8 @@ import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import DeleteSvg from '../../../assets/svg/Delete-svg'
 import EditSvg from '../../../assets/svg/Edit-svg'
+import { useDeleteProject } from '../../../graphql/hooks/use-projects'
 import { ROUTES } from '../../../routes/routes'
-import { useDeleteProjectMutation } from '../../../store/services/project-api-service'
 import type { RootState } from '../../../store/store'
 import type { IProjectWithStats } from '../../../types/projects/project-with-stats'
 import { UserRoleEnum } from '../../../types/users/user-role-enum'
@@ -23,7 +23,7 @@ const ProjectCard: FC<IProps> = ({ project, isLoading, onEditClick }) => {
 
 	const [modalOpen, setModalOpen] = useState<boolean>(false)
 
-	const [deleteProject] = useDeleteProjectMutation()
+	const { deleteProject } = useDeleteProject()
 
 	if (isLoading || !project)
 		return <SkeletonLoader className={'w-full rounded-lg h-44'} />

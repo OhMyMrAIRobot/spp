@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type FC } from 'react'
 import toast from 'react-hot-toast'
 import {
-	useCreateProjectMutation,
-	useUpdateProjectMutation,
-} from '../../../store/services/project-api-service'
-import { useGetUsersQuery } from '../../../store/services/user-api-service'
-import type { ApiError } from '../../../types/api/api-error'
+	useCreateProject,
+	useUpdateProject,
+} from '../../../graphql/hooks/use-projects'
+import { useGetUsers } from '../../../graphql/hooks/use-users'
+import { extractApolloErrors } from '../../../graphql/utils/apollo-error-handler'
 import type { CreateProjectData } from '../../../types/projects/create-project-data'
 import type { IProject } from '../../../types/projects/project'
 import type { IUser } from '../../../types/users/user'
@@ -27,25 +27,55 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose, project }) => {
 	const [description, setDescription] = useState('')
 	const [members, setMembers] = useState<string[]>([])
 
-	useEffect(() => {
-		if (project) {
-			setTitle(project.title)
-			setDescription(project.description)
-			setMembers(project.members || [])
-		} else {
-			setTitle('')
-			setDescription('')
-			setMembers([])
-		}
-	}, [project, isOpen])
+	const [internalIsOpen, setInternalIsOpen] = useState(false)
 
-	const { data: users = [] } = useGetUsersQuery()
-	const [createProject, { isLoading: isCreating }] = useCreateProjectMutation()
-	const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation()
+	const [errorFormData, setErrorFormData] = useState<CreateProjectData | null>(
+		null
+	)
+
+	const [isRestoredFromError, setIsRestoredFromError] = useState(false)
+
+	useEffect(() => {
+		setInternalIsOpen(isOpen)
+	}, [isOpen])
+
+	useEffect(() => {
+		if (internalIsOpen) {
+			if (errorFormData && !isRestoredFromError) {
+				setTitle(errorFormData.title)
+				setDescription(errorFormData.description)
+				setMembers(errorFormData.members)
+				setIsRestoredFromError(true)
+			} else if (project && !errorFormData) {
+				setTitle(project.title)
+				setDescription(project.description)
+				setMembers(project.members.map(m => m.id) || [])
+			} else if (!project && !errorFormData) {
+				setTitle('')
+				setDescription('')
+				setMembers([])
+			}
+		} else {
+			if (!errorFormData) {
+				setIsRestoredFromError(false)
+			}
+		}
+	}, [internalIsOpen, project, errorFormData, isRestoredFromError])
+
+	const { users = [] } = useGetUsers()
+	const { createProject, loading: isCreating } = useCreateProject()
+	const { updateProject, loading: isUpdating } = useUpdateProject()
 
 	const isFormValid = useMemo(() => {
 		return title.trim() && description.trim()
 	}, [description, title])
+
+	const handleClose = () => {
+		setInternalIsOpen(false)
+		setErrorFormData(null)
+		setIsRestoredFromError(false)
+		onClose()
+	}
 
 	const handleSubmit = () => {
 		if (!isFormValid || isLoading) return
@@ -56,36 +86,61 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose, project }) => {
 			members,
 		}
 
-		const promise = project
-			? updateProject({ id: project.id, changes: data }).unwrap()
-			: createProject(data).unwrap()
-
-		promise.catch(err => {
-			const apiError = err as ApiError
-
-			if (apiError.data?.errors?.length) {
-				apiError.data.errors.forEach(e => toast.error(e.message))
-			} else if (apiError.data?.message) {
-				toast.error(apiError.data.message)
-			} else {
-				toast.error('Something went wrong')
-			}
-		})
-
+		setInternalIsOpen(false)
+		setIsRestoredFromError(false)
 		onClose()
+
+		const promise = project
+			? updateProject(project.id, data)
+			: createProject(data)
+
+		promise
+			.then(() => {
+				toast.success(
+					project
+						? 'Project updated successfully'
+						: 'Project created successfully'
+				)
+				setErrorFormData(null)
+			})
+			.catch(err => {
+				const formattedError = extractApolloErrors(err)
+
+				if (
+					formattedError.validationErrors &&
+					formattedError.validationErrors.length > 0
+				) {
+					formattedError.validationErrors.forEach(validationErr => {
+						toast.error(`${validationErr.field}: ${validationErr.message}`)
+					})
+				} else {
+					toast.error(formattedError.message)
+				}
+
+				setErrorFormData({
+					title: data.title,
+					description: data.description,
+					members: data.members,
+				})
+
+				setTimeout(() => {
+					setInternalIsOpen(true)
+					setIsRestoredFromError(false)
+				}, 100)
+			})
 	}
 
 	const isLoading = isCreating || isUpdating
 
 	return (
-		<ModalOverlay isOpen={isOpen} onCancel={onClose}>
+		<ModalOverlay isOpen={internalIsOpen} onCancel={handleClose}>
 			<div className='bg-white rounded-xl p-6 w-[450px]'>
 				<div className='flex items-center justify-between mb-4'>
 					<h3 className='text-lg font-semibold'>
 						{project ? 'Edit Project' : 'Add New Project'}
 					</h3>
 					<button
-						onClick={onClose}
+						onClick={handleClose}
 						className='text-black/50 hover:text-black/70'
 					>
 						✕
@@ -141,11 +196,12 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose, project }) => {
 					</div>
 
 					<div className='flex gap-3 pt-4'>
-						<FormButton onClick={onClose} title='Cancel' invert={true} />
+						<FormButton onClick={handleClose} title='Cancel' invert={true} />
 						<FormButton
 							onClick={handleSubmit}
 							title={project ? 'Edit Project' : 'Add New Project'}
 							disabled={!isFormValid || isLoading}
+							isLoading={isLoading}
 						/>
 					</div>
 				</div>

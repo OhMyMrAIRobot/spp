@@ -1,19 +1,34 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
 	createAsyncThunk,
 	createSlice,
 	type PayloadAction,
 } from '@reduxjs/toolkit'
-import type { ApiResponse } from '../../types/api/api-response'
+
+import { apolloClient } from '../../graphql/apollo-client'
+import {
+	LOGIN_MUTATION,
+	LOGOUT_MUTATION,
+	REFRESH_MUTATION,
+	REGISTER_MUTATION,
+} from '../../graphql/queries/auth.queries'
+import type {
+	LoginMutationResponse,
+	LogoutMutationResponse,
+	RefreshMutationResponse,
+	RegisterMutationResponse,
+} from '../../graphql/responses/auth.responses'
+import {
+	extractApolloErrors,
+	type FormattedError,
+} from '../../graphql/utils/apollo-error-handler'
 import type { IAuthResponse } from '../../types/auth/auth-response'
 import type { ILoginData } from '../../types/auth/login-data'
 import type { IRegisterData } from '../../types/auth/register-data'
-import { loginApi, logoutApi, refreshApi, registerApi } from '../api/auth-api'
-import type { AuthState } from '../types'
+import type { IAuthState } from '../types'
 
 const token = localStorage.getItem('token')
 
-const initialState: AuthState = {
+const initialState: IAuthState = {
 	token: token,
 	user: null,
 	loading: false,
@@ -21,72 +36,80 @@ const initialState: AuthState = {
 	error: null,
 }
 
-// refresh
+// Refresh
 export const refresh = createAsyncThunk<IAuthResponse, void>(
 	'auth/refresh',
 	async (_, { rejectWithValue }) => {
 		try {
-			const response = await refreshApi()
-			if (response.data.data) {
-				return response.data.data
+			const { data } = await apolloClient.mutate<RefreshMutationResponse>({
+				mutation: REFRESH_MUTATION,
+			})
+
+			if (data?.refresh) {
+				return data.refresh
 			}
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(err.response?.data || { message: 'Unauthorized!' })
+
+			return rejectWithValue({ message: 'No data returned' })
+		} catch (err: unknown) {
+			return rejectWithValue(extractApolloErrors(err))
 		}
 	}
 )
 
-// login
+// Login
 export const login = createAsyncThunk<IAuthResponse, ILoginData>(
 	'auth/login',
 	async (credentials, { rejectWithValue }) => {
 		try {
-			const response = await loginApi(credentials)
-			if (response.data.data) {
-				return response.data.data
+			const { data } = await apolloClient.mutate<LoginMutationResponse>({
+				mutation: LOGIN_MUTATION,
+				variables: { input: credentials },
+			})
+
+			if (data?.login) {
+				return data.login
 			}
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(
-				err.response?.data || { message: 'Sign in error!' }
-			)
+
+			return rejectWithValue({ message: 'Login failed1' })
+		} catch (err: unknown) {
+			return rejectWithValue(extractApolloErrors(err))
 		}
 	}
 )
 
-// register
+// Register
 export const register = createAsyncThunk<IAuthResponse, IRegisterData>(
 	'auth/register',
-	async (data, { rejectWithValue }) => {
+	async (credentials, { rejectWithValue }) => {
 		try {
-			const response = await registerApi(data)
-			if (response.data.data) {
-				return response.data.data
+			const { data } = await apolloClient.mutate<RegisterMutationResponse>({
+				mutation: REGISTER_MUTATION,
+				variables: { input: credentials },
+			})
+
+			if (data?.register) {
+				return data.register
 			}
 
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(
-				err.response?.data || { message: 'Sign up error!' }
-			)
+			return rejectWithValue({ message: 'Registration failed' })
+		} catch (err: unknown) {
+			return rejectWithValue(extractApolloErrors(err))
 		}
 	}
 )
 
-// logout
-export const logout = createAsyncThunk(
+// Logout
+export const logout = createAsyncThunk<void, void>(
 	'auth/logout',
 	async (_, { rejectWithValue }) => {
 		try {
-			const response = await logoutApi()
-			if (response.status === 204) {
-				return
-			}
+			await apolloClient.mutate<LogoutMutationResponse>({
+				mutation: LOGOUT_MUTATION,
+			})
 
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(err.response?.data || { message: 'Logout error!' })
+			await apolloClient.clearStore()
+		} catch (err: unknown) {
+			return rejectWithValue(extractApolloErrors(err))
 		}
 	}
 )
@@ -100,36 +123,14 @@ export const authSlice = createSlice({
 		},
 	},
 	extraReducers: builder => {
-		// logout
-		builder.addCase(logout.pending, state => {
-			state.globalLoading = false
-			state.loading = true
-			state.error = null
-		})
-		builder.addCase(logout.fulfilled, state => {
-			state.globalLoading = false
-			state.loading = false
-			state.token = null
-			state.user = null
-			localStorage.removeItem('token')
-			localStorage.removeItem('username')
-		})
-		builder.addCase(logout.rejected, (state, action) => {
-			state.globalLoading = false
-			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
-		})
-
-		// refresh
+		// Refresh
 		builder.addCase(refresh.pending, state => {
 			state.globalLoading = true
-			state.loading = false
 			state.error = null
 		})
 		builder.addCase(
 			refresh.fulfilled,
 			(state, action: PayloadAction<IAuthResponse>) => {
-				state.loading = false
 				state.globalLoading = false
 				state.token = action.payload.token
 				state.user = action.payload.user
@@ -139,24 +140,21 @@ export const authSlice = createSlice({
 		)
 		builder.addCase(refresh.rejected, (state, action) => {
 			state.globalLoading = false
-			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
+			state.error = action.payload as FormattedError
 			state.token = null
 			state.user = null
 			localStorage.removeItem('token')
 			localStorage.removeItem('username')
 		})
 
-		// login
+		// Login
 		builder.addCase(login.pending, state => {
-			state.globalLoading = false
 			state.loading = true
 			state.error = null
 		})
 		builder.addCase(
 			login.fulfilled,
 			(state, action: PayloadAction<IAuthResponse>) => {
-				state.globalLoading = false
 				state.loading = false
 				state.token = action.payload.token
 				state.user = action.payload.user
@@ -165,21 +163,18 @@ export const authSlice = createSlice({
 			}
 		)
 		builder.addCase(login.rejected, (state, action) => {
-			state.globalLoading = false
 			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
+			state.error = action.payload as FormattedError
 		})
 
-		// register
+		// Register
 		builder.addCase(register.pending, state => {
-			state.globalLoading = false
 			state.loading = true
 			state.error = null
 		})
 		builder.addCase(
 			register.fulfilled,
 			(state, action: PayloadAction<IAuthResponse>) => {
-				state.globalLoading = false
 				state.loading = false
 				state.token = action.payload.token
 				state.user = action.payload.user
@@ -188,9 +183,25 @@ export const authSlice = createSlice({
 			}
 		)
 		builder.addCase(register.rejected, (state, action) => {
-			state.globalLoading = false
 			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
+			state.error = action.payload as FormattedError
+		})
+
+		// Logout
+		builder.addCase(logout.pending, state => {
+			state.loading = true
+			state.error = null
+		})
+		builder.addCase(logout.fulfilled, state => {
+			state.loading = false
+			state.token = null
+			state.user = null
+			localStorage.removeItem('token')
+			localStorage.removeItem('username')
+		})
+		builder.addCase(logout.rejected, (state, action) => {
+			state.loading = false
+			state.error = action.payload as FormattedError
 		})
 	},
 })

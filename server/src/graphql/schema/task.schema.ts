@@ -26,14 +26,14 @@ export const taskTypeDefs = gql`
     description: String!
     projectId: ID!
     status: TaskStatus
-    dueDate: DateTime
+    dueDate: String
   }
 
   input UpdateTaskInput {
     title: String
     description: String
     status: TaskStatus
-    dueDate: DateTime
+    dueDate: String
   }
 
   extend type Query {

@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type FC } from 'react'
 import toast from 'react-hot-toast'
-import {
-	useCreateTaskMutation,
-	useUpdateTaskMutation,
-} from '../../store/services/task-api-service'
-import type { ApiError } from '../../types/api/api-error'
+import { useCreateTask, useUpdateTask } from '../../graphql/hooks/use-tasks'
+import { extractApolloErrors } from '../../graphql/utils/apollo-error-handler'
+import type { CreateTaskData } from '../../types/tasks/create-task-data'
 import type { ITask } from '../../types/tasks/task'
 import { TaskStatusEnum } from '../../types/tasks/task-status-enum'
 import FormButton from '../buttons/Form-button'
@@ -27,22 +25,52 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 	const [date, setDate] = useState<string | null>(null)
 	const [status, setStatus] = useState<TaskStatusEnum>(TaskStatusEnum.TODO)
 
-	const [createTask, { isLoading: isCreating }] = useCreateTaskMutation()
-	const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation()
+	const [internalIsOpen, setInternalIsOpen] = useState(false)
 
-	const resetForm = useCallback(() => {
-		setTitle(task?.title ?? '')
-		setDesc(task?.description ?? '')
-		setDate(task?.dueDate ?? null)
-		setStatus(task?.status ?? TaskStatusEnum.TODO)
-	}, [task])
+	const [errorFormData, setErrorFormData] = useState<CreateTaskData | null>(
+		null
+	)
+	const [isRestoredFromError, setIsRestoredFromError] = useState(false)
+
+	const { createTask, loading: isCreating } = useCreateTask()
+	const { updateTask, loading: isUpdating } = useUpdateTask()
 
 	useEffect(() => {
-		if (isOpen) resetForm()
-	}, [isOpen, resetForm])
+		setInternalIsOpen(isOpen)
+	}, [isOpen])
+
+	const resetForm = useCallback(() => {
+		if (errorFormData && !isRestoredFromError) {
+			setTitle(errorFormData.title)
+			setDesc(errorFormData.description)
+			setDate(errorFormData.dueDate ?? null)
+			setStatus(errorFormData.status)
+			setIsRestoredFromError(true)
+		} else if (task && !errorFormData) {
+			setTitle(task.title ?? '')
+			setDesc(task.description ?? '')
+			setDate(task.dueDate ?? null)
+			setStatus(task.status ?? TaskStatusEnum.TODO)
+		} else if (!task && !errorFormData) {
+			setTitle('')
+			setDesc('')
+			setDate(null)
+			setStatus(TaskStatusEnum.TODO)
+		}
+	}, [task, errorFormData, isRestoredFromError])
+
+	useEffect(() => {
+		if (internalIsOpen) {
+			resetForm()
+		} else {
+			if (!errorFormData) {
+				setIsRestoredFromError(false)
+			}
+		}
+	}, [internalIsOpen, resetForm, errorFormData])
 
 	const handleDateChange = (value: string) => {
-		setDate(value ? new Date(value).toISOString() : null)
+		setDate(value || null)
 	}
 
 	const isFormValid = useMemo(() => {
@@ -59,8 +87,27 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 		)
 	}, [date, desc, status, task, title])
 
+	const handleClose = () => {
+		setInternalIsOpen(false)
+		setErrorFormData(null)
+		setIsRestoredFromError(false)
+		onClose()
+	}
+
 	const handleSubmit = () => {
 		if (!isFormValid || !hasChanges) return
+
+		const data: CreateTaskData = {
+			title: title.trim(),
+			description: desc.trim(),
+			dueDate: date ?? undefined,
+			status,
+			projectId,
+		}
+
+		setInternalIsOpen(false)
+		setIsRestoredFromError(false)
+		onClose()
 
 		let promise
 
@@ -73,41 +120,52 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 			if (date !== task.dueDate) changes.dueDate = date ?? undefined
 			if (status !== task.status) changes.status = status
 
-			promise = updateTask({ id: task.id, projectId, changes }).unwrap()
+			promise = updateTask(task.id, projectId, changes)
 		} else {
-			promise = createTask({
-				title: title.trim(),
-				description: desc.trim(),
-				dueDate: date ?? undefined,
-				status,
-				projectId,
-			}).unwrap()
+			promise = createTask(data)
 		}
 
-		promise.catch(err => {
-			const apiError = err as ApiError
+		promise
+			.then(() => {
+				toast.success(
+					task ? 'Task updated successfully' : 'Task created successfully'
+				)
+				setErrorFormData(null)
+			})
+			.catch(err => {
+				const formattedError = extractApolloErrors(err)
 
-			if (apiError.data?.errors?.length) {
-				apiError.data.errors.forEach(e => toast.error(e.message))
-			} else if (apiError.data?.message) {
-				toast.error(apiError.data.message)
-			} else {
-				toast.error('Something went wrong')
-			}
-		})
+				if (
+					formattedError.validationErrors &&
+					formattedError.validationErrors.length > 0
+				) {
+					formattedError.validationErrors.forEach(validationErr => {
+						toast.error(`${validationErr.field}: ${validationErr.message}`)
+					})
+				} else {
+					toast.error(formattedError.message)
+				}
 
-		onClose()
+				setErrorFormData(data)
+
+				setTimeout(() => {
+					setInternalIsOpen(true)
+					setIsRestoredFromError(false)
+				}, 300)
+			})
 	}
 
+	const isLoading = isCreating || isUpdating
+
 	return (
-		<ModalOverlay isOpen={isOpen} onCancel={onClose}>
+		<ModalOverlay isOpen={internalIsOpen} onCancel={handleClose}>
 			<div className='bg-white rounded-xl p-6 w-[450px]'>
 				<div className='flex items-center justify-between mb-4'>
 					<h3 className='text-lg font-semibold'>
 						{task ? 'Edit Task' : 'Add New Task'}
 					</h3>
 					<button
-						onClick={onClose}
+						onClick={handleClose}
 						className='text-black/50 hover:text-black/70'
 					>
 						✕
@@ -170,11 +228,12 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 					</div>
 
 					<div className='flex gap-3 pt-4'>
-						<FormButton onClick={onClose} title={'Cancel'} invert={true} />
+						<FormButton onClick={handleClose} title={'Cancel'} invert={true} />
 						<FormButton
 							onClick={handleSubmit}
 							title={`${task ? 'Edit' : 'Add'} task`}
-							disabled={!isFormValid || !hasChanges || isCreating || isUpdating}
+							disabled={!isFormValid || !hasChanges || isLoading}
+							isLoading={isLoading}
 						/>
 					</div>
 				</div>

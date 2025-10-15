@@ -12,6 +12,7 @@
   "dependencies": {
     "@apollo/server": "^4.12.2",
     "@graphql-tools/schema": "^10.0.25",
+    "apollo-upload-client": "^19.0.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -30,6 +31,7 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@types/apollo-upload-client": "^19.0.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",

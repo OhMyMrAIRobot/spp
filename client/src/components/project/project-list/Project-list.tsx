@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
-import { useGetProjectsQuery } from '../../../store/services/project-api-service'
+import { useGetProjects } from '../../../graphql/hooks/use-projects'
 import type { RootState } from '../../../store/store'
 import type { IProject } from '../../../types/projects/project'
 import { UserRoleEnum } from '../../../types/users/user-role-enum'
@@ -10,7 +10,7 @@ import ProjectCard from './Project-card'
 import ProjectModal from './Project-modal'
 
 const ProjectList = () => {
-	const { data: projects, isLoading: isProjectsLoading } = useGetProjectsQuery()
+	const { projects, loading: isProjectsLoading } = useGetProjects()
 
 	const [modalOpen, setModalOpen] = useState<boolean>(false)
 	const [project, setProject] = useState<IProject | null>(null)

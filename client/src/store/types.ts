@@ -1,10 +1,10 @@
-import type { ApiResponse } from '../types/api/api-response'
+import type { FormattedError } from '../graphql/utils/apollo-error-handler'
 import type { IUser } from '../types/users/user'
 
-export interface AuthState {
+export interface IAuthState {
 	token: string | null
 	user: IUser | null
 	globalLoading: boolean
 	loading: boolean
-	error: ApiResponse<null> | null
+	error: FormattedError | null
 }

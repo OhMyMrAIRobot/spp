@@ -1,3 +1,5 @@
-import type { IProject } from './project'
-
-export type CreateProjectData = Omit<IProject, 'id' | 'createdAt'>
+export type CreateProjectData = {
+	title: string
+	description: string
+	members: string[]
+}

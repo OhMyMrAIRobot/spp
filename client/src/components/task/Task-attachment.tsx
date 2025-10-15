@@ -1,17 +1,17 @@
 import { useState, type FC } from 'react'
 import toast from 'react-hot-toast'
 import { useSelector } from 'react-redux'
+import { downloadAttachmentApi } from '../../api/attachment-api'
 import CrossSvg from '../../assets/svg/Cross-svg'
 import DownloadSvg from '../../assets/svg/Download-svg'
 import FileSvg from '../../assets/svg/File-svg'
-import { downloadAttachmentApi } from '../../store/api/attachment-api'
-import { useDeleteAttachmentMutation } from '../../store/services/attachment-api-service'
+import { useDeleteAttachment } from '../../graphql/hooks/use-attachments'
+import { extractApolloErrors } from '../../graphql/utils/apollo-error-handler'
 import type { RootState } from '../../store/store'
 import type { IAttachment } from '../../types/attachments/attachment'
 import type { ITask } from '../../types/tasks/task'
 import { UserRoleEnum } from '../../types/users/user-role-enum'
 import { formatBytes } from '../../utils/format-bytes'
-import { getApiErrorMessages } from '../../utils/get-api-error-messages'
 import Loader from '../loaders/Loader'
 
 interface IProps {
@@ -26,8 +26,7 @@ const TaskAttachment: FC<IProps> = ({ attachment, task }) => {
 	const canDelete =
 		task.assignee === user?.id || user?.role === UserRoleEnum.ADMIN
 
-	const [deleteAttachment, { isLoading: deleting }] =
-		useDeleteAttachmentMutation()
+	const { deleteAttachment, loading: deleting } = useDeleteAttachment()
 
 	const handleDownload = async () => {
 		try {
@@ -55,6 +54,19 @@ const TaskAttachment: FC<IProps> = ({ attachment, task }) => {
 			} finally {
 				URL.revokeObjectURL(objectUrl)
 			}
+		} catch (err) {
+			const formattedError = extractApolloErrors(err)
+
+			if (
+				formattedError.validationErrors &&
+				formattedError.validationErrors.length > 0
+			) {
+				formattedError.validationErrors.forEach(validationErr => {
+					toast.error(`${validationErr.field}: ${validationErr.message}`)
+				})
+			} else {
+				toast.error(formattedError.message)
+			}
 		} finally {
 			setDownloading(false)
 		}
@@ -63,18 +75,20 @@ const TaskAttachment: FC<IProps> = ({ attachment, task }) => {
 	const handleDelete = async () => {
 		try {
 			if (!canDelete) return
-			await deleteAttachment({
-				id: attachment.id,
-				taskId: task.id,
-				projectId: task.projectId,
-			}).unwrap()
+			await deleteAttachment(attachment.id, task.id, task.projectId)
 			toast.success('Attachment deleted successfully!')
 		} catch (err) {
-			const messages = getApiErrorMessages(err)
-			if (messages.length) {
-				messages.forEach(m => toast.error(m))
+			const formattedError = extractApolloErrors(err)
+
+			if (
+				formattedError.validationErrors &&
+				formattedError.validationErrors.length > 0
+			) {
+				formattedError.validationErrors.forEach(validationErr => {
+					toast.error(`${validationErr.field}: ${validationErr.message}`)
+				})
 			} else {
-				toast.error('Something went wrong')
+				toast.error(formattedError.message)
 			}
 		}
 	}

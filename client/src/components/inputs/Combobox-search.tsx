@@ -51,7 +51,7 @@ const ComboboxSearch = <T,>({
 					setOpen(true)
 				}}
 				onFocus={() => setOpen(true)}
-				onBlur={() => setTimeout(() => setOpen(false), 150)} // даём время кликнуть по опции
+				onBlur={() => setTimeout(() => setOpen(false), 150)}
 				placeholder={placeholder}
 				className='w-full px-3 py-2 border border-black/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent'
 			/>

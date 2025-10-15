@@ -71,7 +71,7 @@ export const authResolvers = {
         }
 
         throw new GraphQLError(err.message || ErrorMessages.LOGIN_FAILED, {
-          extensions: { code: ErrorCodes.UNAUTHENTICATED },
+          extensions: { code: ErrorCodes.BAD_USER_INPUT },
         });
       }
     },
