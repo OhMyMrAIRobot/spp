@@ -45,7 +45,7 @@ export const createContext = async ({
     if (token) {
       try {
         user = tokenService.verifyAccessToken(token);
-      } catch (err) {
+      } catch {
         user = undefined;
       }
     }

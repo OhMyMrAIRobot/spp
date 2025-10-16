@@ -16,9 +16,14 @@ export const authenticate = (
   const token = header.split(' ')[1];
   if (!token) throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
 
-  const payload = tokenService.verifyAccessToken(token);
-  req.user = payload;
-  next();
+  try {
+    const payload = tokenService.verifyAccessToken(token);
+    req.user = payload;
+  } catch (e) {
+    throw e;
+  } finally {
+    next();
+  }
 };
 
 export const authorize = (roles: UserRoleEnum[]) => {

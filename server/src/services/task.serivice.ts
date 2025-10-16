@@ -6,6 +6,7 @@ import { JwtPayload } from '../types/jwt-payload';
 import { TaskStatusEnum } from '../types/task-status';
 import { UserRoleEnum } from '../types/user/user-role';
 import { ensureProjectMembership } from '../utils/common';
+import { attachmentService } from './attachment.service';
 import { projectService } from './project.service';
 import { userService } from './user.service';
 
@@ -89,6 +90,12 @@ export const taskService = {
       const project = await projectService.getByIdRaw(task.projectId);
       ensureProjectMembership(project, user);
       taskService.ensureAccess(task, user);
+    }
+
+    try {
+      await attachmentService.deleteAllByTaskId(id);
+    } catch (error) {
+      //
     }
 
     const deleted = await Task.findByIdAndDelete(id).exec();

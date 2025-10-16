@@ -4,26 +4,25 @@ import { Attachment, IAttachment } from '../models/attachment';
 import { IProject, Project } from '../models/project';
 import { IUser, User } from '../models/user';
 
+const commonOptions = {
+  batch: true,
+  cache: true,
+  maxBatchSize: 100,
+  batchScheduleFn: (cb: () => void) => setTimeout(cb, 10),
+};
+
 export const createDataLoaders = () => {
-  const userLoader = new DataLoader<string, IUser | null>(
-    async (ids) => {
-      const users = await User.find({
-        _id: { $in: ids.map((id) => new Types.ObjectId(id)) },
-      }).exec();
+  const userLoader = new DataLoader<string, IUser | null>(async (ids) => {
+    const users = await User.find({
+      _id: { $in: ids.map((id) => new Types.ObjectId(id)) },
+    }).exec();
 
-      const userMap = new Map<string, IUser>(
-        users.map((u) => [u._id.toString(), u.toJSON() as IUser]),
-      );
+    const userMap = new Map<string, IUser>(
+      users.map((u) => [u._id.toString(), u.toJSON() as IUser]),
+    );
 
-      return ids.map((id) => userMap.get(id) || null);
-    },
-    {
-      batch: true,
-      cache: true,
-      maxBatchSize: 100,
-      batchScheduleFn: (cb) => setTimeout(cb, 10),
-    },
-  );
+    return ids.map((id) => userMap.get(id) || null);
+  }, commonOptions);
 
   const projectLoader = new DataLoader<string, IProject | null>(async (ids) => {
     const projects = await Project.find({
@@ -35,7 +34,7 @@ export const createDataLoaders = () => {
     );
 
     return ids.map((id) => projectMap.get(id) || null);
-  });
+  }, commonOptions);
 
   const attachmentsByTaskLoader = new DataLoader<string, IAttachment[]>(
     async (taskIds) => {
@@ -55,6 +54,7 @@ export const createDataLoaders = () => {
 
       return taskIds.map((id) => attachmentMap.get(id) || []);
     },
+    commonOptions,
   );
 
   const membersByProjectLoader = new DataLoader<string, IUser[]>(
@@ -92,6 +92,7 @@ export const createDataLoaders = () => {
 
       return projectIds.map((id) => projectMembersMap.get(id) || []);
     },
+    commonOptions,
   );
 
   return {

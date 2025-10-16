@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import { Attachment } from './models/attachment';
 import { Project } from './models/project';
 import { Task } from './models/task';
 import { User } from './models/user';
@@ -19,6 +20,7 @@ async function seed() {
       User.deleteMany({}),
       Project.deleteMany({}),
       Task.deleteMany({}),
+      Attachment.deleteMany({}),
     ]);
 
     const passwordHash = await bcrypt.hash('123456789', 10);

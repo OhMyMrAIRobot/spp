@@ -1,12 +1,13 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { ErrorMessages } from '../constants/error-messages';
+import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';
 import { userService } from './user.service';
 
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'accesssecret';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refreshsecret';
-const JWT_ACCESS_EXPIRES_IN = '10d';
+const JWT_ACCESS_EXPIRES_IN = '10s';
 const JWT_REFRESH_EXPIRES_IN = '30d';
 
 export const tokenService = {
@@ -26,7 +27,7 @@ export const tokenService = {
     try {
       return jwt.verify(token, JWT_ACCESS_SECRET) as JwtPayload;
     } catch {
-      throw new Error(ErrorMessages.UNAUTHORIZED);
+      throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
     }
   },
 

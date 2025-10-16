@@ -8,7 +8,7 @@ export const ErrorMessages = {
   LOGIN_FAILED: 'Login failed!',
   TOKEN_MISSING: 'Token missing!',
   REFRESH_FAILED: 'Refresh failed!',
-  UNAUTHORIZED: 'Unathorized!',
+  UNAUTHORIZED: 'Unauthorized!',
   FORBIDDEN: 'Forbidden! You don`t have access to this resource!',
   INVALID_CREDENTIALS: 'Invalid credentials!',
 

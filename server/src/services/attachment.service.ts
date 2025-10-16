@@ -85,4 +85,32 @@ export const attachmentService = {
 
     return;
   },
+
+  deleteAllByTaskId: async (taskId: string): Promise<void> => {
+    if (!Types.ObjectId.isValid(taskId)) {
+      throw new Error(ErrorMessages.INVALID_IDENTIFIER);
+    }
+
+    const attachments = await attachmentService.getByTaskId(taskId);
+
+    if (attachments.length === 0) return;
+
+    const deletePromises = attachments.map(async (attachment) => {
+      try {
+        await fs.access(attachment.storagePath);
+        await fs.unlink(attachment.storagePath);
+      } catch (e: any) {
+        if (e?.code !== 'ENOENT')
+          throw new Error(ErrorMessages.FAILED_DELETE_ATTACHMENT);
+      }
+
+      try {
+        await Attachment.findByIdAndDelete(attachment.id).exec();
+      } catch (error) {
+        throw new Error(ErrorMessages.FAILED_DELETE_ATTACHMENT);
+      }
+    });
+
+    await Promise.all(deletePromises);
+  },
 };
