@@ -5,7 +5,6 @@ import {
 	HttpLink,
 	InMemoryCache,
 	Observable,
-	type FetchResult,
 } from '@apollo/client'
 import { REFRESH_MUTATION } from './queries/auth.queries'
 import type { RefreshMutationResponse } from './responses/auth.responses'
@@ -97,7 +96,7 @@ export const apolloClient = new ApolloClient({
 })
 
 const errorLink = new ApolloLink((operation, forward) => {
-	return new Observable<FetchResult>(observer => {
+	return new Observable<ApolloLink.Result>(observer => {
 		let subscription: any = null
 		let hasUnauthenticatedError = false
 

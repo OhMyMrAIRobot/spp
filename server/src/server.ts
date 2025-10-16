@@ -42,14 +42,6 @@ const start = async () => {
         console.log('HTTP server closed');
       });
 
-      try {
-        const mongoose = await import('mongoose');
-        await mongoose.connection.close();
-        console.log('MongoDB connection closed');
-      } catch (err) {
-        console.error('Error closing MongoDB connection:', err);
-      }
-
       process.exit(0);
     };
 
