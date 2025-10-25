@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package common;
+
+message Empty {}
+
+message Error {
+  string code = 1;
+  string message = 2;
+  int32 status = 3;
+  repeated ValidationError validation_errors = 4;
+}
+
+message ValidationError {
+  string path = 1;
+  string message = 2;
+}
+
+message AuthMetadata {
+  string access_token = 1;
+}
+
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  ADMIN = 1;
+  MEMBER = 2;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TODO = 1;
+  IN_PROGRESS = 2;
+  DONE = 3;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  UserRole role = 3;
+}
+
+message Attachment {
+  string id = 1;
+  string original_name = 2;
+  int64 size = 3;
+  string uploaded_by = 4;
+  string created_at = 5;
+}

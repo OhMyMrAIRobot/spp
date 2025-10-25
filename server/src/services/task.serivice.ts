@@ -1,14 +1,12 @@
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { ITask, Task } from '../models/task';
 import { AppError } from '../types/http/error/app-error';
-import {
-  CreateTaskBody,
-  UpdateTaskBody,
-} from '../types/http/request/task.request';
-import { ITaskResponse } from '../types/http/response/task.response';
 import { JwtPayload } from '../types/jwt-payload';
+import { CreateTaskData } from '../types/task/create-task-data';
+import { ITaskExtended } from '../types/task/task-extended';
 import { TaskStatusEnum } from '../types/task/task-status';
+import { UpdateTaskData } from '../types/task/update-task-data';
 import { UserRoleEnum } from '../types/user/user-role';
 import {
   ensureProjectMembership,
@@ -20,7 +18,7 @@ import { projectService } from './project.service';
 import { userService } from './user.service';
 
 export const taskService = {
-  getAll: async (): Promise<ITaskResponse[]> => {
+  getAll: async (): Promise<ITaskExtended[]> => {
     const tasks = await Task.find().exec();
 
     const tasksExt = await Promise.all(
@@ -38,7 +36,7 @@ export const taskService = {
     return tasksExt;
   },
 
-  getById: async (id: string, user?: JwtPayload): Promise<ITaskResponse> => {
+  getById: async (id: string, user?: JwtPayload): Promise<ITaskExtended> => {
     if (!Types.ObjectId.isValid(id))
       throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
 
@@ -80,7 +78,7 @@ export const taskService = {
   getByProjectId: async (
     projectId: string,
     user?: JwtPayload,
-  ): Promise<ITaskResponse[]> => {
+  ): Promise<ITaskExtended[]> => {
     if (!Types.ObjectId.isValid(projectId)) return [];
 
     const project = await projectService.getByIdRaw(projectId);
@@ -109,9 +107,9 @@ export const taskService = {
   },
 
   create: async (
-    data: CreateTaskBody,
+    data: CreateTaskData,
     user?: JwtPayload,
-  ): Promise<ITaskResponse> => {
+  ): Promise<ITaskExtended> => {
     if (!user) throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
 
     await userService.getById(user.id);
@@ -137,9 +135,9 @@ export const taskService = {
 
   update: async (
     id: string,
-    changes: UpdateTaskBody,
+    changes: UpdateTaskData,
     user?: JwtPayload,
-  ): Promise<ITaskResponse> => {
+  ): Promise<ITaskExtended> => {
     const task = await taskService.getByIdRaw(id);
 
     if (user) {
@@ -153,7 +151,7 @@ export const taskService = {
     }).exec();
 
     if (!updated) {
-      throw new AppError(ErrorMessages.UPDATE_ERROR);
+      throw new AppError(ErrorMessages.FAILED_UPDATE_TASK);
     }
 
     const taskUser = await userService.getById(updated.assignee);
@@ -177,7 +175,11 @@ export const taskService = {
 
     const deleted = await Task.findByIdAndDelete(id).exec();
 
-    if (!deleted) throw new AppError(ErrorMessages.DELETE_ERROR);
+    if (!deleted) throw new AppError(ErrorMessages.FAILED_DELETE_TASK);
+
+    try {
+      await attachmentService.deleteAllByTaskId(id);
+    } catch (error) {}
 
     return;
   },

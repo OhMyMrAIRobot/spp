@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';
 import { userService } from './user.service';

@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package attachment;
+
+import "common.proto";
+
+service AttachmentService {
+  rpc ListByTask(ListByTaskRequest) returns (ListByTaskResponse);
+  rpc UploadToTask(stream UploadChunk) returns (UploadResponse);
+  rpc DownloadById(DownloadByIdRequest) returns (stream DownloadChunk);
+  rpc DeleteById(DeleteByIdRequest) returns (common.Empty);
+}
+
+message ListByTaskRequest {
+  string taskId = 1;
+}
+
+message ListByTaskResponse {
+  repeated AttachmentFull attachments = 1;
+}
+
+message AttachmentFull {
+  string id = 1;
+  string taskId = 2;
+  string projectId = 3;
+  string originalName = 4;
+  string mimeType = 5;
+  int64 size = 6;
+  string storagePath = 7;
+  string uploadedBy = 8;
+  string createdAt = 9;
+}
+
+message UploadChunk {
+  oneof data {
+    UploadMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message UploadMetadata {
+  string taskId = 1;
+  string originalName = 2;
+  string mimeType = 3;
+}
+
+message UploadResponse {
+  repeated common.Attachment attachments = 1;
+}
+
+message DownloadByIdRequest {
+  string id = 1;
+}
+
+message DownloadChunk {
+  oneof data {
+    DownloadMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message DownloadMetadata {
+  string originalName = 1;
+  string mimeType = 2;
+  int64 size = 3;
+}
+
+message DeleteByIdRequest {
+  string id = 1;
+}

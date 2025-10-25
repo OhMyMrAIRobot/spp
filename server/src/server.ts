@@ -1,10 +1,5 @@
-import app from './app';
-import config from './config/config';
 import { connectDB } from './database';
-
-app.listen(config.port, () => {
-  console.log(`Server is running on port ${config.port}`);
-});
+import { startRPCServer } from './grpc/grpc-server';
 
 const tryConnectDB = async (retries = 5, delay = 3000) => {
   for (let i = 0; i < retries; i++) {
@@ -21,4 +16,5 @@ const tryConnectDB = async (retries = 5, delay = 3000) => {
   console.error('Failed to connect to MongoDB after several attempts');
 };
 
+startRPCServer();
 tryConnectDB();

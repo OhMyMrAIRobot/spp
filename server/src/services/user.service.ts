@@ -1,11 +1,9 @@
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { IUser, User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
-import {
-  CreateUserBody,
-  UpdateUserBody,
-} from '../types/http/request/user.request';
+import { CreateUserData } from '../types/user/create-user-data';
+import { UpdateUserData } from '../types/user/update-user-data';
 
 export const userService = {
   getAll: async (): Promise<IUser[]> => User.find().exec(),
@@ -21,7 +19,7 @@ export const userService = {
     return user.toJSON();
   },
 
-  create: async (data: CreateUserBody): Promise<IUser> => {
+  create: async (data: CreateUserData): Promise<IUser> => {
     await userService.ensureUniqueUsername(data.username);
 
     const user = new User({
@@ -33,7 +31,7 @@ export const userService = {
     return (await user.save()).toJSON();
   },
 
-  update: async (id: string, changes: UpdateUserBody): Promise<IUser> => {
+  update: async (id: string, changes: UpdateUserData): Promise<IUser> => {
     await userService.getById(id);
 
     if (changes.username) {
@@ -44,7 +42,7 @@ export const userService = {
       new: true,
     }).exec();
 
-    if (!updated) throw new AppError(ErrorMessages.UPDATE_ERROR);
+    if (!updated) throw new AppError(ErrorMessages.FAILED_UPDATE_USER);
 
     return updated.toJSON();
   },
@@ -54,7 +52,7 @@ export const userService = {
 
     const deleted = await User.findByIdAndDelete(id).exec();
 
-    if (!deleted) throw new AppError(ErrorMessages.DELETE_ERROR);
+    if (!deleted) throw new AppError(ErrorMessages.FAILER_DELETE_USER);
 
     return;
   },

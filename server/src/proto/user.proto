@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package user;
+
+import "common.proto";
+
+service UserService {
+  rpc GetAll(GetAllUsersRequest) returns (GetAllUsersResponse);
+  rpc GetById(GetUserByIdRequest) returns (GetUserByIdResponse);
+}
+
+message GetAllUsersRequest {}
+
+message GetAllUsersResponse {
+  repeated common.User users = 1;
+}
+
+message GetUserByIdRequest {
+  string id = 1;
+}
+
+message GetUserByIdResponse {
+  common.User user = 1;
+}

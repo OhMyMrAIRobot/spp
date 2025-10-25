@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';

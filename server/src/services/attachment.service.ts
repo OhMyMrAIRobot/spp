@@ -1,12 +1,19 @@
 import fs from 'fs/promises';
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { Attachment, type IAttachment } from '../models/attachment';
 import { AppError } from '../types/http/error/app-error';
 import { JwtPayload } from '../types/jwt-payload';
 import { ensureProjectMembership } from '../utils/common';
 import { projectService } from './project.service';
 import { taskService } from './task.serivice';
+
+interface UploadedFile {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  path: string;
+}
 
 export const attachmentService = {
   async getByTaskId(taskId: string, user?: JwtPayload): Promise<IAttachment[]> {
@@ -24,10 +31,9 @@ export const attachmentService = {
 
   async create(
     taskId: string,
-    files: Express.Multer.File[],
+    files: UploadedFile[],
     user: JwtPayload,
   ): Promise<IAttachment[]> {
-    // throw new AppError('Drop file test', 500);
     const task = await taskService.getByIdRaw(taskId);
     const project = await projectService.getByIdRaw(task.projectId);
 
@@ -79,11 +85,39 @@ export const attachmentService = {
       await fs.unlink(att.storagePath);
     } catch (e: any) {
       if (e?.code !== 'ENOENT')
-        throw new AppError(ErrorMessages.DELETE_ERROR, 500);
+        throw new AppError(ErrorMessages.FAILED_DELETE_ATTACHMENT, 500);
     }
 
     await Attachment.deleteOne({ _id: id }).exec();
 
     return;
+  },
+
+  deleteAllByTaskId: async (taskId: string): Promise<void> => {
+    if (!Types.ObjectId.isValid(taskId)) {
+      throw new Error(ErrorMessages.INVALID_IDENTIFIER);
+    }
+
+    const attachments = await attachmentService.getByTaskId(taskId);
+
+    if (attachments.length === 0) return;
+
+    const deletePromises = attachments.map(async (attachment) => {
+      try {
+        await fs.access(attachment.storagePath);
+        await fs.unlink(attachment.storagePath);
+      } catch (e: any) {
+        if (e?.code !== 'ENOENT')
+          throw new Error(ErrorMessages.FAILED_DELETE_ATTACHMENT);
+      }
+
+      try {
+        await Attachment.findByIdAndDelete(attachment.id).exec();
+      } catch (error) {
+        throw new Error(ErrorMessages.FAILED_DELETE_ATTACHMENT);
+      }
+    });
+
+    await Promise.all(deletePromises);
   },
 };

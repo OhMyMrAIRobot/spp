@@ -1,21 +1,19 @@
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { IProject, Project } from '../models/project';
 import { Task } from '../models/task';
 import { User } from '../models/user';
 import { AppError } from '../types/http/error/app-error';
-import {
-  CreateProjectBody,
-  UpdateProjectBody,
-} from '../types/http/request/project.request';
-import { IProjectResponse } from '../types/http/response/project.response';
 import { JwtPayload } from '../types/jwt-payload';
+import { CreateProjectData } from '../types/project/create-project-data';
+import { IProjectWithTaskCounts } from '../types/project/project-with-task-counts';
+import { UpdateProjectData } from '../types/project/update-project-data';
 import { UserRoleEnum } from '../types/user/user-role';
 import { ensureProjectMembership } from '../utils/common';
 import { taskService } from './task.serivice';
 
 export const projectService = {
-  getAll: async (user?: JwtPayload): Promise<IProjectResponse[]> => {
+  getAll: async (user?: JwtPayload): Promise<IProjectWithTaskCounts[]> => {
     let projects = [];
 
     if (user && user.role === UserRoleEnum.MEMBER) {
@@ -24,7 +22,7 @@ export const projectService = {
       projects = await Project.find().exec();
     }
 
-    const projectsWithStats: IProjectResponse[] = [];
+    const projectsWithStats: IProjectWithTaskCounts[] = [];
 
     for (const p of projects) {
       projectsWithStats.push({
@@ -36,7 +34,10 @@ export const projectService = {
     return projectsWithStats;
   },
 
-  getById: async (id: string, user?: JwtPayload): Promise<IProjectResponse> => {
+  getById: async (
+    id: string,
+    user?: JwtPayload,
+  ): Promise<IProjectWithTaskCounts> => {
     if (!Types.ObjectId.isValid(id))
       throw new AppError(ErrorMessages.INVALID_IDENTIFIER, 400);
 
@@ -69,7 +70,7 @@ export const projectService = {
     return project.toJSON();
   },
 
-  create: async (body: CreateProjectBody): Promise<IProjectResponse> => {
+  create: async (body: CreateProjectData): Promise<IProjectWithTaskCounts> => {
     const members =
       body.members?.filter((id) => Types.ObjectId.isValid(id)) || [];
 
@@ -103,8 +104,8 @@ export const projectService = {
 
   update: async (
     id: string,
-    body: UpdateProjectBody,
-  ): Promise<IProjectResponse> => {
+    body: UpdateProjectData,
+  ): Promise<IProjectWithTaskCounts> => {
     await projectService.getByIdRaw(id);
 
     const members =
@@ -129,7 +130,7 @@ export const projectService = {
       new: true,
     }).exec();
 
-    if (!updated) throw new AppError(ErrorMessages.UPDATE_ERROR, 400);
+    if (!updated) throw new AppError(ErrorMessages.FAILED_UPDATE_PROJECT, 400);
 
     return {
       ...updated.toJSON(),
@@ -138,19 +139,19 @@ export const projectService = {
   },
 
   delete: async (id: string) => {
-    try {
-      await projectService.getByIdRaw(id);
+    await projectService.getByIdRaw(id);
 
+    try {
       const deletedProject = await Project.findByIdAndDelete(id).exec();
       if (!deletedProject) {
-        throw new AppError(ErrorMessages.DELETE_ERROR);
+        throw new AppError(ErrorMessages.FAILED_DELETE_PROJECT);
       }
 
       await Task.deleteMany({ projectId: id }).exec();
 
       return;
     } catch (error) {
-      throw new AppError(ErrorMessages.DELETE_ERROR);
+      throw new AppError(ErrorMessages.FAILED_DELETE_PROJECT);
     }
   },
 };

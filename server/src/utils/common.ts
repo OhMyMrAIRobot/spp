@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { ErrorMessages } from '../constants/errors';
+import { ErrorMessages } from '../constants/error-messages';
 import { IAttachment } from '../models/attachment';
 import { IProject } from '../models/project';
 import { IUser } from '../models/user';

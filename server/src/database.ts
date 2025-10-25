@@ -1,4 +1,7 @@
+import { configDotenv } from 'dotenv';
 import mongoose from 'mongoose';
+
+configDotenv();
 
 const mongoUri = process.env.MONGO_URI || '';
 

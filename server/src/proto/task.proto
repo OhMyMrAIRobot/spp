@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package task;
+
+import "common.proto";
+
+service TaskService {
+  rpc GetAll(GetAllTasksRequest) returns (GetAllTasksResponse);
+  rpc GetById(GetTaskByIdRequest) returns (GetTaskByIdResponse);
+  rpc GetByProject(GetTasksByProjectRequest) returns (GetTasksByProjectResponse);
+  rpc Create(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc Update(UpdateTaskRequest) returns (UpdateTaskResponse);
+  rpc Delete(DeleteTaskRequest) returns (common.Empty);
+}
+
+message Task {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  common.TaskStatus status = 4;
+  string assignee = 5;
+  string createdAt = 6;
+  optional string dueDate = 7;
+  string projectId = 8;
+  common.User user = 9;
+  repeated common.Attachment attachments = 10;
+}
+
+message GetAllTasksRequest {}
+
+message GetAllTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message GetTaskByIdRequest {
+  string id = 1;
+}
+
+message GetTaskByIdResponse {
+  Task task = 1;
+}
+
+message GetTasksByProjectRequest {
+  string projectId = 1;
+}
+
+message GetTasksByProjectResponse {
+  repeated Task tasks = 1;
+}
+
+message CreateTaskRequest {
+  string title = 1;
+  string description = 2;
+  string projectId = 3;
+  optional string dueDate = 4;
+  optional common.TaskStatus status = 5;
+}
+
+message CreateTaskResponse {
+  Task task = 1;
+}
+
+message UpdateTaskRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string dueDate = 4;
+  optional common.TaskStatus status = 5;
+}
+
+message UpdateTaskResponse {
+  Task task = 1;
+}
+
+message DeleteTaskRequest {
+  string id = 1;
+}
