@@ -1,7 +1,7 @@
 import type { IProject } from './project'
 
 export interface IProjectWithStats extends IProject {
-	taskCounts: {
+	taskCounts?: {
 		TODO: number
 		IN_PROGRESS: number
 		DONE: number

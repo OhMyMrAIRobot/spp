@@ -38,3 +38,16 @@ export type DownloadChunk = {
 };
 
 export type DeleteByIdResponse = {};
+
+export type UploadFileResponse = {
+  attachments: GrpcAttachment[];
+};
+
+export type DownloadFileResponse = {
+  metadata: {
+    originalName: string;
+    mimeType: string;
+    size: string;
+  };
+  data: Buffer;
+};

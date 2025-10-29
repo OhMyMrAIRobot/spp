@@ -1,10 +1,8 @@
 import * as grpc from '@grpc/grpc-js';
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
-import { ErrorMessages } from '../../constants/error-messages';
 import { attachmentService } from '../../services/attachment.service';
 import { AppError } from '../../types/http/error/app-error';
-import { toPublicAttachment } from '../../utils/common';
 import { AuthenticatedCall } from '../interceptoprs/auth.interceptor';
 import {
   toGrpcAttachment,
@@ -14,14 +12,12 @@ import {
   DeleteByIdRequest,
   DownloadByIdRequest,
   ListByTaskRequest,
-  UploadChunk,
-  UploadMetadata,
 } from '../types/request/attachment.request';
 import {
   DeleteByIdResponse,
-  DownloadChunk,
+  DownloadFileResponse,
   ListByTaskResponse,
-  UploadResponse,
+  UploadFileResponse,
 } from '../types/response/attachment.response';
 import { wrapUnaryCall } from '../utils/call-wrapper';
 import { handleGrpcError } from '../utils/grpc-error';
@@ -55,109 +51,69 @@ export const attachmentGrpcService = {
     },
   ),
 
-  uploadToTask: async (
-    call: grpc.ServerReadableStream<UploadChunk, UploadResponse> &
-      AuthenticatedCall,
-  ): Promise<UploadResponse | undefined> => {
-    try {
-      let metadata: UploadMetadata | null = null;
-      let fileBuffer = Buffer.alloc(0);
+  uploadToTask: (
+    call: AuthenticatedCall,
+    callback: grpc.sendUnaryData<UploadFileResponse>,
+  ) => {
+    (async () => {
+      try {
+        if (!call.user) throw new AppError('UNAUTHORIZED', 401);
 
-      for await (const chunk of call) {
-        if (chunk.metadata) {
-          metadata = chunk.metadata;
-        } else if (chunk.chunk) {
-          fileBuffer = Buffer.concat([fileBuffer, chunk.chunk]);
-        }
+        const { taskId, originalName, mimeType, data } = call.request;
+        const dir = path.join(process.cwd(), 'uploads', 'tasks', taskId);
+        await fs.mkdir(dir, { recursive: true });
+
+        const ext = path.extname(originalName);
+        const filename = `${Date.now()}-${Math.random().toString(16).slice(2)}${ext}`;
+        const filePath = path.join(dir, filename);
+        await fs.writeFile(filePath, data);
+
+        const created = await attachmentService.create(
+          taskId,
+          [
+            {
+              originalname: originalName,
+              mimetype: mimeType,
+              size: data.length,
+              path: filePath,
+            },
+          ],
+          call.user,
+        );
+
+        callback(null, {
+          attachments: created.map((att) => toGrpcAttachment(att)),
+        });
+      } catch (err) {
+        callback(err as Error, null);
       }
-
-      if (!metadata) {
-        throw new AppError(ErrorMessages.NO_FILES_UPLOADED, 400);
-      }
-
-      if (!call.user) {
-        throw new AppError(ErrorMessages.UNAUTHORIZED, 401);
-      }
-
-      const baseDir =
-        process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-      const dir = path.join(baseDir, 'tasks', metadata.taskId);
-      fs.mkdirSync(dir, { recursive: true });
-
-      const ext = path.extname(metadata.originalName);
-      const filename = `${Date.now()}-${Math.random().toString(16).slice(2)}${ext}`;
-      const filePath = path.join(dir, filename);
-
-      await fs.promises.writeFile(filePath, fileBuffer);
-
-      const file: UploadedFile = {
-        fieldname: 'files',
-        originalname: metadata.originalName,
-        encoding: '7bit',
-        mimetype: metadata.mimeType,
-        size: fileBuffer.length,
-        destination: dir,
-        filename: filename,
-        path: filePath,
-      };
-
-      const created = await attachmentService.create(
-        metadata.taskId,
-        [file as any],
-        call.user,
-      );
-
-      return {
-        attachments: created.map((c) =>
-          toGrpcAttachment(toPublicAttachment(c)),
-        ),
-      };
-    } catch (error) {
-      handleGrpcError(error, (err) => {
-        if (err) {
-          call.destroy(err as Error);
-        }
-      });
-      return undefined;
-    }
+    })();
   },
 
   downloadById: async (
-    call: grpc.ServerWritableStream<DownloadByIdRequest, DownloadChunk> &
+    call: grpc.ServerUnaryCall<DownloadByIdRequest, DownloadFileResponse> &
       AuthenticatedCall,
-  ): Promise<void> => {
+    callback: grpc.sendUnaryData<DownloadFileResponse>,
+  ) => {
     try {
       const { id } = call.request;
 
       const att = await attachmentService.getById(id, call.user);
 
-      if (!fs.existsSync(att.storagePath)) {
-        throw new AppError(ErrorMessages.MISSING_FILE, 404);
-      }
+      await fs.access(att.storagePath);
 
-      call.write({
+      const fileBuffer = await fs.readFile(att.storagePath);
+
+      callback(null, {
         metadata: {
           originalName: att.originalName,
           mimeType: att.mimeType,
           size: att.size.toString(),
         },
+        data: fileBuffer,
       });
-
-      const stream = fs.createReadStream(att.storagePath, {
-        highWaterMark: CHUNK_SIZE,
-      });
-
-      for await (const chunk of stream) {
-        call.write({ chunk });
-      }
-
-      call.end();
     } catch (error) {
-      handleGrpcError(error, (err) => {
-        if (err) {
-          call.destroy(err as Error);
-        }
-      });
+      handleGrpcError(error, (err) => callback(err as grpc.ServiceError, null));
     }
   },
 

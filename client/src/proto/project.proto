@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package project;
+
+import "common.proto";
+
+service ProjectService {
+  rpc GetAll(GetAllProjectsRequest) returns (GetAllProjectsResponse);
+  rpc GetById(GetProjectByIdRequest) returns (GetProjectByIdResponse);
+  rpc Create(CreateProjectRequest) returns (CreateProjectResponse);
+  rpc Update(UpdateProjectRequest) returns (UpdateProjectResponse);
+  rpc Delete(DeleteProjectRequest) returns (common.Empty);
+}
+
+message Project {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  repeated string members = 4;
+  string created_at = 5;
+  TaskCounts task_counts = 6;
+}
+
+message TaskCounts {
+  int32 todo = 1;
+  int32 in_progress = 2;
+  int32 done = 3;
+}
+
+message GetAllProjectsRequest {}
+
+message GetAllProjectsResponse {
+  repeated Project projects = 1;
+}
+
+message GetProjectByIdRequest {
+  string id = 1;
+}
+
+message GetProjectByIdResponse {
+  Project project = 1;
+}
+
+message CreateProjectRequest {
+  string title = 1;
+  string description = 2;
+  repeated string members = 3;
+}
+
+message CreateProjectResponse {
+  Project project = 1;
+}
+
+message UpdateProjectRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  repeated string members = 4;
+}
+
+message UpdateProjectResponse {
+  Project project = 1;
+}
+
+message DeleteProjectRequest {
+  string id = 1;
+}

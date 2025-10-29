@@ -1,17 +1,23 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { ApiResponse } from '../../types/api/api-response'
+import { grpcGetAllUsers } from '../../grpc/clients/user-client'
+import { mapUserFromGrpc } from '../../grpc/mappers/user.mapper'
+import { extractGrpcError } from '../../grpc/utils/extract-grpc-error'
 import type { IUser } from '../../types/users/user'
-import { axiosBaseQuery } from '../api/axios-base-query'
 
 export const userApi = createApi({
 	reducerPath: 'UserApi',
-	baseQuery: axiosBaseQuery(),
+	baseQuery: async () => ({ data: undefined }),
 	tagTypes: ['Users'],
 	endpoints: builder => ({
 		getUsers: builder.query<IUser[], void>({
-			query: () => '/users',
-			transformResponse: (response: ApiResponse<IUser[]>) =>
-				response.data ?? [],
+			queryFn: async () => {
+				try {
+					const data = await grpcGetAllUsers()
+					return { data: data.users.map(u => mapUserFromGrpc(u)) }
+				} catch (err) {
+					return { error: extractGrpcError(err, 'Failed to fetch users') }
+				}
+			},
 		}),
 	}),
 })

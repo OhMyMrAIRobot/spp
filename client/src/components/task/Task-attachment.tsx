@@ -1,11 +1,13 @@
-import { useState, type FC } from 'react'
+import { type FC } from 'react'
 import toast from 'react-hot-toast'
 import { useSelector } from 'react-redux'
 import CrossSvg from '../../assets/svg/Cross-svg'
 import DownloadSvg from '../../assets/svg/Download-svg'
 import FileSvg from '../../assets/svg/File-svg'
-import { downloadAttachmentApi } from '../../store/api/attachment-api'
-import { useDeleteAttachmentMutation } from '../../store/services/attachment-api-service'
+import {
+	attachmentApi,
+	useDeleteAttachmentMutation,
+} from '../../store/services/attachment-api-service'
 import type { RootState } from '../../store/store'
 import type { IAttachment } from '../../types/attachments/attachment'
 import type { ITask } from '../../types/tasks/task'
@@ -20,8 +22,6 @@ interface IProps {
 }
 
 const TaskAttachment: FC<IProps> = ({ attachment, task }) => {
-	const [downloading, setDownloading] = useState(false)
-
 	const { user } = useSelector((state: RootState) => state.auth)
 	const canDelete =
 		task.assignee === user?.id || user?.role === UserRoleEnum.ADMIN
@@ -29,34 +29,25 @@ const TaskAttachment: FC<IProps> = ({ attachment, task }) => {
 	const [deleteAttachment, { isLoading: deleting }] =
 		useDeleteAttachmentMutation()
 
+	const [downloadAttachment, { isLoading: downloading }] =
+		attachmentApi.useDownloadAttachmentMutation()
+
 	const handleDownload = async () => {
 		try {
-			if (downloading) return
-			setDownloading(true)
-			const response = await downloadAttachmentApi(attachment.id)
-
-			const blob = new Blob([response.data], {
-				type:
-					(response.headers['content-type'] as string) ||
-					'application/octet-stream',
+			const fileData: Uint8Array = await downloadAttachment(
+				attachment.id
+			).unwrap()
+			const blob = new Blob([new Uint8Array(fileData)], {
+				type: 'application/octet-stream',
 			})
-
-			const filename = attachment.originalName
-
-			const objectUrl = URL.createObjectURL(blob)
-			try {
-				const a = document.createElement('a')
-				a.href = objectUrl
-				a.download = filename
-				a.style.display = 'none'
-				document.body.appendChild(a)
-				a.click()
-				document.body.removeChild(a)
-			} finally {
-				URL.revokeObjectURL(objectUrl)
-			}
-		} finally {
-			setDownloading(false)
+			const url = URL.createObjectURL(blob)
+			const a = document.createElement('a')
+			a.href = url
+			a.download = attachment.originalName
+			a.click()
+			URL.revokeObjectURL(url)
+		} catch {
+			toast.error('Error during downloading file!')
 		}
 	}
 

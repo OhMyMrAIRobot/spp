@@ -1,4 +1,3 @@
-import * as grpc from '@grpc/grpc-js';
 import { ErrorMessages } from '../../constants/error-messages';
 import { authService } from '../../services/auth.service';
 import { AppError } from '../../types/http/error/app-error';
@@ -27,12 +26,9 @@ export const authGrpcService = {
         UserRoleEnum.MEMBER,
       );
 
-      const responseMetadata = new grpc.Metadata();
-      responseMetadata.add(REFRESH_TOKEN_NAME, result.refreshToken);
-      call.sendMetadata(responseMetadata);
-
       return {
         accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
         user: toGrpcUser(result.user),
       };
     },
@@ -47,12 +43,9 @@ export const authGrpcService = {
 
       const result = await authService.login(username, password);
 
-      const responseMetadata = new grpc.Metadata();
-      responseMetadata.add(REFRESH_TOKEN_NAME, result.refreshToken);
-      call.sendMetadata(responseMetadata);
-
       return {
         accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
         user: toGrpcUser(result.user),
       };
     },
@@ -71,12 +64,9 @@ export const authGrpcService = {
 
       const result = await authService.refresh(refreshToken);
 
-      const responseMetadata = new grpc.Metadata();
-      responseMetadata.add(REFRESH_TOKEN_NAME, result.refreshToken);
-      call.sendMetadata(responseMetadata);
-
       return {
         accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
         user: toGrpcUser(result.user),
       };
     },

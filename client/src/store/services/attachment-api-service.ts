@@ -1,7 +1,12 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { ApiResponse } from '../../types/api/api-response'
+import {
+	grpcDeleteAttachment,
+	grpcDownloadAttachment,
+	grpcGetAttachmentsByTask,
+	grpcUploadToTask,
+} from '../../grpc/clients/attachment-client'
+import { extractGrpcError } from '../../grpc/utils/extract-grpc-error'
 import type { IAttachment } from '../../types/attachments/attachment'
-import { axiosBaseQuery } from '../api/axios-base-query'
 import { taskApi } from './task-api-service'
 
 type UploadArgs = {
@@ -18,104 +23,118 @@ type DeleteArgs = {
 
 export const attachmentApi = createApi({
 	reducerPath: 'AttachmentApi',
-	baseQuery: axiosBaseQuery(),
+	baseQuery: async () => ({ data: undefined }),
+	tagTypes: ['Attachments'],
 	endpoints: builder => ({
 		uploadToTask: builder.mutation<IAttachment[], UploadArgs>({
-			query: ({ taskId, files }) => {
-				const form = new FormData()
-				files.forEach(f => form.append('files', f))
-				return {
-					url: `/attachments/tasks/${taskId}`,
-					method: 'POST',
-					data: form,
+			queryFn: async ({ taskId, files }) => {
+				try {
+					const attachments: IAttachment[] = []
+
+					for (const file of files) {
+						const res = await grpcUploadToTask(taskId, file)
+						attachments.push(
+							...res.attachments.map(a => ({
+								id: a.id,
+								originalName: a.originalName,
+								size: Number(a.size),
+								uploadedBy: a.uploadedBy,
+								createdAt: a.createdAt,
+							}))
+						)
+					}
+
+					return { data: attachments }
+				} catch (err) {
+					return { error: extractGrpcError(err, 'error') }
 				}
 			},
-			transformResponse: (response: ApiResponse<IAttachment[]>) =>
-				response.data ?? [],
-			async onQueryStarted(
-				{ taskId, projectId, files },
-				{ dispatch, queryFulfilled }
-			) {
-				const tempIds: string[] = []
-				const tempAttachments: IAttachment[] = files.map((f, i) => {
-					const id = `temp-att-${Date.now()}-${i}`
-					tempIds.push(id)
-					return {
-						id,
-						originalName: f.name,
-						size: f.size,
-						uploadedBy: 'currentUserId',
-						createdAt: new Date().toISOString(),
-					}
-				})
-
-				const patch = dispatch(
-					taskApi.util.updateQueryData(
-						'getTasksByProject',
-						projectId,
-						draft => {
-							const task = draft.find(t => t.id === taskId)
-							if (task) {
-								task.attachments.push(...tempAttachments)
-							}
-						}
-					)
-				)
-
+			async onQueryStarted({ taskId }, { dispatch, queryFulfilled }) {
 				try {
-					const { data: created } = await queryFulfilled
+					const { data: newAttachments } = await queryFulfilled
 					dispatch(
-						taskApi.util.updateQueryData(
-							'getTasksByProject',
-							projectId,
+						attachmentApi.util.updateQueryData(
+							'getAttachmentsByTask',
+							{ taskId },
 							draft => {
-								const task = draft.find(t => t.id === taskId)
-								if (!task) return
-								task.attachments = task.attachments.filter(
-									a => !tempIds.includes(a.id)
-								)
-								task.attachments.push(...created)
+								draft.push(...newAttachments)
 							}
 						)
 					)
+					dispatch(taskApi.util.invalidateTags([{ type: 'Tasks', id: taskId }]))
 				} catch {
-					patch.undo()
+					//
 				}
 			},
 		}),
 
-		deleteAttachment: builder.mutation<{ success: boolean } | void, DeleteArgs>(
-			{
-				query: ({ id }) => ({
-					url: `/attachments/${id}`,
-					method: 'DELETE',
-				}),
-				async onQueryStarted(
-					{ id, taskId, projectId },
-					{ dispatch, queryFulfilled }
-				) {
-					const patch = dispatch(
-						taskApi.util.updateQueryData(
-							'getTasksByProject',
-							projectId,
+		deleteAttachment: builder.mutation<void, DeleteArgs>({
+			queryFn: async ({ id }) => {
+				try {
+					await grpcDeleteAttachment(id)
+					return { data: undefined }
+				} catch (err) {
+					return { error: extractGrpcError(err, 'error') }
+				}
+			},
+			async onQueryStarted({ taskId, id }, { dispatch, queryFulfilled }) {
+				try {
+					await queryFulfilled
+					dispatch(
+						attachmentApi.util.updateQueryData(
+							'getAttachmentsByTask',
+							{ taskId },
 							draft => {
-								const task = draft.find(t => t.id === taskId)
-								if (!task) return
-								task.attachments = task.attachments.filter(a => a.id !== id)
+								const index = draft.findIndex(a => a.id === id)
+								if (index !== -1) draft.splice(index, 1)
 							}
 						)
 					)
+					dispatch(taskApi.util.invalidateTags([{ type: 'Tasks', id: taskId }]))
+				} catch {
+					//
+				}
+			},
+		}),
 
-					try {
-						await queryFulfilled
-					} catch {
-						patch.undo()
-					}
-				},
-			}
-		),
+		getAttachmentsByTask: builder.query<IAttachment[], { taskId: string }>({
+			queryFn: async ({ taskId }) => {
+				try {
+					const response = await grpcGetAttachmentsByTask(taskId)
+					const attachments: IAttachment[] = response.attachments.map(a => ({
+						id: a.id,
+						originalName: a.originalName,
+						size: Number(a.size),
+						uploadedBy: a.uploadedBy,
+						createdAt: a.createdAt,
+					}))
+					return { data: attachments }
+				} catch (err) {
+					return { error: extractGrpcError(err, 'error') }
+				}
+			},
+			providesTags: (result, _, { taskId }) =>
+				result
+					? [{ type: 'Attachments', id: taskId }]
+					: [{ type: 'Attachments', id: taskId }],
+		}),
+
+		downloadAttachment: builder.mutation<Uint8Array, string>({
+			queryFn: async (id: string) => {
+				try {
+					const { data } = await grpcDownloadAttachment(id)
+					return { data }
+				} catch (err) {
+					return { error: err }
+				}
+			},
+		}),
 	}),
 })
 
-export const { useUploadToTaskMutation, useDeleteAttachmentMutation } =
-	attachmentApi
+export const {
+	useUploadToTaskMutation,
+	useDeleteAttachmentMutation,
+	useGetAttachmentsByTaskQuery,
+	useDownloadAttachmentMutation,
+} = attachmentApi

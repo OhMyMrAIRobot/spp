@@ -13,7 +13,6 @@ import type { ITask } from '../../types/tasks/task'
 import type { ITaskExtended } from '../../types/tasks/task-extended'
 import { UserRoleEnum } from '../../types/users/user-role-enum'
 import { dateUtils } from '../../utils/date-util'
-import { getApiErrorMessages } from '../../utils/get-api-error-messages'
 import Loader from '../loaders/Loader'
 import SkeletonLoader from '../loaders/Skeleton-loader'
 import ConfirmationModal from '../modal/Confirmation-modal'
@@ -63,13 +62,8 @@ const TaskCard: FC<IProps> = ({ task, onEditModal, isLoading }) => {
 			toast.success(
 				`Attachment${files.length > 1 ? 's' : ''} added successfully!`
 			)
-		} catch (err) {
-			const messages = getApiErrorMessages(err)
-			if (messages.length) {
-				messages.forEach(m => toast.error(m))
-			} else {
-				toast.error('Something went wrong')
-			}
+		} catch {
+			//
 		}
 	}
 

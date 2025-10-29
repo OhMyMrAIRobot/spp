@@ -1,82 +1,81 @@
 import { createApi } from '@reduxjs/toolkit/query/react'
-import type { ApiResponse } from '../../types/api/api-response'
+import {
+	grpcCreateTask,
+	grpcDeleteTask,
+	grpcGetTasksByProject,
+	grpcUpdateTask,
+} from '../../grpc/clients/task-client'
+import { mapAttachmentFromGrpc } from '../../grpc/mappers/attachment.mapper'
+import { taskStatusFromGrpc } from '../../grpc/mappers/task.mapper'
+import { mapUserFromGrpc } from '../../grpc/mappers/user.mapper'
 import type { CreateTaskData } from '../../types/tasks/create-task-data'
 import type { ITaskExtended } from '../../types/tasks/task-extended'
-import { UserRoleEnum } from '../../types/users/user-role-enum'
-import { axiosBaseQuery } from '../api/axios-base-query'
 import { projectApi } from './project-api-service'
 
 export const taskApi = createApi({
 	reducerPath: 'TaskApi',
-	baseQuery: axiosBaseQuery(),
+	baseQuery: async () => ({ data: undefined }),
+	tagTypes: ['Tasks', 'Projects'],
 	endpoints: builder => ({
 		getTasksByProject: builder.query<ITaskExtended[], string>({
-			query: projectId => `/tasks/project/${projectId}`,
-			transformResponse: (response: ApiResponse<ITaskExtended[]>) =>
-				response.data ?? [],
+			queryFn: async projectId => {
+				try {
+					const { tasks } = await grpcGetTasksByProject(projectId)
+					const data = tasks.map(t => ({
+						...t,
+						status: taskStatusFromGrpc(t.status),
+						user: mapUserFromGrpc(t.user!),
+						attachments: t.attachments.map(at => mapAttachmentFromGrpc(at)),
+					}))
+					return { data }
+				} catch (err) {
+					return { error: err }
+				}
+			},
+			providesTags: (result, _error, projectId) =>
+				result
+					? [
+							...result.map(({ id }) => ({ type: 'Tasks' as const, id })),
+							{ type: 'Tasks', id: projectId },
+					  ]
+					: [{ type: 'Tasks', id: projectId }],
 		}),
 
 		createTask: builder.mutation<ITaskExtended | undefined, CreateTaskData>({
-			query: body => ({
-				url: '/tasks',
-				method: 'POST',
-				body,
-			}),
-			transformResponse: (response: ApiResponse<ITaskExtended>) =>
-				response.data,
-			async onQueryStarted(body, { dispatch, queryFulfilled }) {
-				const tempId = `temp-${Date.now()}`
-				const tempTask: ITaskExtended = {
-					id: tempId,
-					title: body.title,
-					description: body.description,
-					assignee: '',
-					dueDate: body.dueDate,
-					status: body.status,
-					projectId: body.projectId,
-					createdAt: new Date().toISOString(),
-					user: {
-						id: '0',
-						role: UserRoleEnum.MEMBER,
-						username: localStorage.getItem('username') ?? 'Unknown',
-					},
-					attachments: [],
-				}
-
-				const patchTasksByProject = dispatch(
-					taskApi.util.updateQueryData(
-						'getTasksByProject',
-						body.projectId,
-						draft => {
-							draft.push(tempTask)
-						}
-					)
-				)
-
+			queryFn: async body => {
 				try {
-					const { data: realTask } = await queryFulfilled
-					if (realTask) {
-						dispatch(
-							taskApi.util.updateQueryData(
-								'getTasksByProject',
-								body.projectId,
-								draft => {
-									const index = draft.findIndex(t => t.id === tempId)
-									if (index !== -1) draft[index] = realTask
-								}
-							)
-						)
+					const { task } = await grpcCreateTask(body)
 
-						dispatch(
-							projectApi.util.invalidateTags([
-								{ type: 'Projects', id: body.projectId },
-							])
-						)
-					} else {
-						patchTasksByProject.undo()
+					if (!task || !task.id) {
+						return { error: new Error('Task not found') }
 					}
+
+					return {
+						data: {
+							...task,
+							id: task.id,
+							status: taskStatusFromGrpc(task.status),
+							user: mapUserFromGrpc(task.user!),
+							attachments: task.attachments?.map(mapAttachmentFromGrpc) ?? [],
+						},
+					}
+				} catch (err) {
+					return { error: err }
+				}
+			},
+			invalidatesTags: (_result, _error, body) => [
+				{ type: 'Tasks', id: body.projectId },
+			],
+			async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+				try {
+					await queryFulfilled
+					dispatch(
+						projectApi.util.invalidateTags([
+							{ type: 'Projects', id: arg.projectId },
+						])
+					)
 				} catch {
-					patchTasksByProject.undo()
+					//
 				}
 			},
 		}),
@@ -85,75 +84,31 @@ export const taskApi = createApi({
 			ITaskExtended | undefined,
 			{ id: string; projectId: string; changes: Partial<CreateTaskData> }
 		>({
-			query: ({ id, changes }) => ({
-				url: `/tasks/${id}`,
-				method: 'PATCH',
-				body: changes,
-			}),
-			transformResponse: (response: ApiResponse<ITaskExtended>) =>
-				response.data,
-			async onQueryStarted(
-				{ id, projectId, changes },
-				{ dispatch, queryFulfilled }
-			) {
-				const patchTasksByProject = dispatch(
-					taskApi.util.updateQueryData(
-						'getTasksByProject',
-						projectId,
-						draft => {
-							const index = draft.findIndex(t => t.id === id)
-							if (index !== -1) draft[index] = { ...draft[index], ...changes }
-						}
-					)
-				)
-
+			queryFn: async ({ id, changes }) => {
 				try {
-					const { data: updatedTask } = await queryFulfilled
-					if (updatedTask) {
-						dispatch(
-							taskApi.util.updateQueryData(
-								'getTasksByProject',
-								projectId,
-								draft => {
-									const index = draft.findIndex(t => t.id === id)
-									if (index !== -1) draft[index] = updatedTask
-								}
-							)
-						)
+					const { task } = await grpcUpdateTask(id, changes)
 
-						dispatch(
-							projectApi.util.invalidateTags([
-								{ type: 'Projects', id: projectId },
-							])
-						)
-					} else {
-						patchTasksByProject.undo()
+					if (!task || !task.id) {
+						return { error: new Error('Task update failed') }
 					}
-				} catch {
-					patchTasksByProject.undo()
+
+					return {
+						data: {
+							...task,
+							id: task.id,
+							status: taskStatusFromGrpc(task.status),
+							user: mapUserFromGrpc(task.user!),
+							attachments: task.attachments?.map(mapAttachmentFromGrpc) ?? [],
+						},
+					}
+				} catch (err) {
+					return { error: err }
 				}
 			},
-		}),
-
-		deleteTask: builder.mutation<
-			{ success: boolean },
-			{ id: string; projectId: string }
-		>({
-			query: ({ id }) => ({
-				url: `/tasks/${id}`,
-				method: 'DELETE',
-			}),
-			async onQueryStarted({ id, projectId }, { dispatch, queryFulfilled }) {
-				const patchTasksByProject = dispatch(
-					taskApi.util.updateQueryData(
-						'getTasksByProject',
-						projectId,
-						draft => {
-							return draft.filter(task => task.id !== id)
-						}
-					)
-				)
-
+			invalidatesTags: (_result, _error, { projectId }) => [
+				{ type: 'Tasks', id: projectId },
+			],
+			async onQueryStarted({ projectId }, { dispatch, queryFulfilled }) {
 				try {
 					await queryFulfilled
 					dispatch(
@@ -162,7 +117,36 @@ export const taskApi = createApi({
 						])
 					)
 				} catch {
-					patchTasksByProject.undo()
+					//
+				}
+			},
+		}),
+
+		deleteTask: builder.mutation<
+			{ success: boolean },
+			{ id: string; projectId: string }
+		>({
+			queryFn: async ({ id }) => {
+				try {
+					await grpcDeleteTask(id)
+					return { data: { success: true } }
+				} catch (err) {
+					return { error: err }
+				}
+			},
+			invalidatesTags: (_result, _error, { projectId }) => [
+				{ type: 'Tasks', id: projectId },
+			],
+			async onQueryStarted({ projectId }, { dispatch, queryFulfilled }) {
+				try {
+					await queryFulfilled
+					dispatch(
+						projectApi.util.invalidateTags([
+							{ type: 'Projects', id: projectId },
+						])
+					)
+				} catch {
+					//
 				}
 			},
 		}),

@@ -87,31 +87,6 @@ function withMiddleware(handler: any, middlewares: any[] = []) {
   };
 }
 
-function withStreamMiddleware(handler: any, middlewares: any[] = []) {
-  return (call: any) => {
-    let index = 0;
-    let errorOccurred = false;
-
-    const errorCallback = (error: grpc.ServiceError | null) => {
-      if (error && !errorOccurred) {
-        errorOccurred = true;
-        call.destroy(error);
-      }
-    };
-
-    const next = () => {
-      if (index < middlewares.length && !errorOccurred) {
-        const middleware = middlewares[index++];
-        middleware(call, errorCallback, next);
-      } else if (!errorOccurred) {
-        handler(call);
-      }
-    };
-
-    next();
-  };
-}
-
 const server = new grpc.Server();
 
 server.addService(authProto.AuthService.service, {
@@ -192,10 +167,10 @@ server.addService(attachmentProto.AttachmentService.service, {
     authenticateInterceptor,
     validateInterceptor(listByTaskGrpcSchema),
   ]),
-  uploadToTask: withStreamMiddleware(attachmentGrpcService.uploadToTask, [
+  uploadFileToTask: withMiddleware(attachmentGrpcService.uploadToTask, [
     authenticateInterceptor,
   ]),
-  downloadById: withStreamMiddleware(attachmentGrpcService.downloadById, [
+  downloadById: withMiddleware(attachmentGrpcService.downloadById, [
     authenticateInterceptor,
     validateInterceptor(downloadByIdGrpcSchema),
   ]),

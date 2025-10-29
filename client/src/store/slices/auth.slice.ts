@@ -4,89 +4,80 @@ import {
 	createSlice,
 	type PayloadAction,
 } from '@reduxjs/toolkit'
-import type { ApiResponse } from '../../types/api/api-response'
-import type { IAuthResponse } from '../../types/auth/auth-response'
-import type { ILoginData } from '../../types/auth/login-data'
-import type { IRegisterData } from '../../types/auth/register-data'
-import { loginApi, logoutApi, refreshApi, registerApi } from '../api/auth-api'
+import {
+	grpcLogin,
+	grpcLogout,
+	grpcRefresh,
+	grpcRegister,
+} from '../../grpc/clients/auth-client'
+import type {
+	LoginResponse,
+	RefreshResponse,
+	RegisterResponse,
+} from '../../grpc/generated/auth'
+import { mapUserFromGrpc } from '../../grpc/mappers/user.mapper'
+import { extractGrpcError } from '../../grpc/utils/extract-grpc-error'
+import { ACCESS_TOKEN_NAME, REFRESH_TOKEN_NAME } from '../../utils/constants'
 import type { AuthState } from '../types'
 
-const token = localStorage.getItem('token')
+const refreshToken = localStorage.getItem(REFRESH_TOKEN_NAME)
 
 const initialState: AuthState = {
-	token: token,
 	user: null,
 	loading: false,
-	globalLoading: !!token,
+	globalLoading: !!refreshToken,
 	error: null,
 }
 
 // refresh
-export const refresh = createAsyncThunk<IAuthResponse, void>(
+export const refresh = createAsyncThunk<RefreshResponse, void>(
 	'auth/refresh',
 	async (_, { rejectWithValue }) => {
 		try {
-			const response = await refreshApi()
-			if (response.data.data) {
-				return response.data.data
-			}
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(err.response?.data || { message: 'Unauthorized!' })
+			const response = await grpcRefresh()
+			if (response) return response
+			return rejectWithValue({ message: 'Unauthorized!' })
+		} catch (err) {
+			return rejectWithValue(extractGrpcError(err, 'Unauthorized!'))
 		}
 	}
 )
 
 // login
-export const login = createAsyncThunk<IAuthResponse, ILoginData>(
-	'auth/login',
-	async (credentials, { rejectWithValue }) => {
-		try {
-			const response = await loginApi(credentials)
-			if (response.data.data) {
-				return response.data.data
-			}
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(
-				err.response?.data || { message: 'Sign in error!' }
-			)
-		}
+export const login = createAsyncThunk<
+	LoginResponse,
+	{ username: string; password: string }
+>('auth/login', async (credentials, { rejectWithValue }) => {
+	try {
+		const response = await grpcLogin(credentials.username, credentials.password)
+		return response
+	} catch (err) {
+		return rejectWithValue(extractGrpcError(err, 'Sign in error!'))
 	}
-)
+})
 
 // register
-export const register = createAsyncThunk<IAuthResponse, IRegisterData>(
-	'auth/register',
-	async (data, { rejectWithValue }) => {
-		try {
-			const response = await registerApi(data)
-			if (response.data.data) {
-				return response.data.data
-			}
-
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(
-				err.response?.data || { message: 'Sign up error!' }
-			)
-		}
+export const register = createAsyncThunk<
+	RegisterResponse,
+	{ username: string; password: string }
+>('auth/register', async (data, { rejectWithValue }) => {
+	try {
+		const response = await grpcRegister(data.username, data.password)
+		return response
+	} catch (err) {
+		return rejectWithValue(extractGrpcError(err, 'Sign up error!'))
 	}
-)
+})
 
 // logout
 export const logout = createAsyncThunk(
 	'auth/logout',
 	async (_, { rejectWithValue }) => {
 		try {
-			const response = await logoutApi()
-			if (response.status === 204) {
-				return
-			}
-
-			return rejectWithValue(response.data)
-		} catch (err: any) {
-			return rejectWithValue(err.response?.data || { message: 'Logout error!' })
+			await grpcLogout()
+			return
+		} catch (err) {
+			return rejectWithValue(extractGrpcError(err, 'Logout error!'))
 		}
 	}
 )
@@ -100,98 +91,79 @@ export const authSlice = createSlice({
 		},
 	},
 	extraReducers: builder => {
-		// logout
-		builder.addCase(logout.pending, state => {
-			state.globalLoading = false
-			state.loading = true
-			state.error = null
-		})
-		builder.addCase(logout.fulfilled, state => {
-			state.globalLoading = false
-			state.loading = false
-			state.token = null
-			state.user = null
-			localStorage.removeItem('token')
-			localStorage.removeItem('username')
-		})
-		builder.addCase(logout.rejected, (state, action) => {
-			state.globalLoading = false
-			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
-		})
-
-		// refresh
-		builder.addCase(refresh.pending, state => {
-			state.globalLoading = true
-			state.loading = false
-			state.error = null
-		})
-		builder.addCase(
-			refresh.fulfilled,
-			(state, action: PayloadAction<IAuthResponse>) => {
+		builder
+			.addCase(login.pending, state => {
+				state.loading = true
+				state.error = null
+			})
+			.addCase(
+				login.fulfilled,
+				(state, action: PayloadAction<LoginResponse>) => {
+					state.loading = false
+					state.user = mapUserFromGrpc(action.payload.user!)
+					localStorage.setItem(ACCESS_TOKEN_NAME, action.payload.accessToken)
+					localStorage.setItem(REFRESH_TOKEN_NAME, action.payload.refreshToken)
+					if (action.payload.user) {
+						localStorage.setItem('username', action.payload.user.username)
+					}
+				}
+			)
+			.addCase(login.rejected, (state, action) => {
 				state.loading = false
-				state.globalLoading = false
-				state.token = action.payload.token
-				state.user = action.payload.user
-				localStorage.setItem('token', action.payload.token)
-				localStorage.setItem('username', action.payload.user.username)
-			}
-		)
-		builder.addCase(refresh.rejected, (state, action) => {
-			state.globalLoading = false
-			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
-			state.token = null
-			state.user = null
-			localStorage.removeItem('token')
-			localStorage.removeItem('username')
-		})
+				state.error = action.payload as any
+			})
 
-		// login
-		builder.addCase(login.pending, state => {
-			state.globalLoading = false
-			state.loading = true
-			state.error = null
-		})
-		builder.addCase(
-			login.fulfilled,
-			(state, action: PayloadAction<IAuthResponse>) => {
-				state.globalLoading = false
+			.addCase(register.pending, state => {
+				state.loading = true
+				state.error = null
+			})
+			.addCase(
+				register.fulfilled,
+				(state, action: PayloadAction<RegisterResponse>) => {
+					state.loading = false
+					state.user = mapUserFromGrpc(action.payload.user!)
+					localStorage.setItem(ACCESS_TOKEN_NAME, action.payload.accessToken)
+					localStorage.setItem(REFRESH_TOKEN_NAME, action.payload.refreshToken)
+					if (action.payload.user) {
+						localStorage.setItem('username', action.payload.user.username)
+					}
+				}
+			)
+			.addCase(register.rejected, (state, action) => {
 				state.loading = false
-				state.token = action.payload.token
-				state.user = action.payload.user
-				localStorage.setItem('token', action.payload.token)
-				localStorage.setItem('username', action.payload.user.username)
-			}
-		)
-		builder.addCase(login.rejected, (state, action) => {
-			state.globalLoading = false
-			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
-		})
+				state.error = action.payload as any
+			})
 
-		// register
-		builder.addCase(register.pending, state => {
-			state.globalLoading = false
-			state.loading = true
-			state.error = null
-		})
-		builder.addCase(
-			register.fulfilled,
-			(state, action: PayloadAction<IAuthResponse>) => {
+			.addCase(refresh.pending, state => {
+				state.globalLoading = true
+				state.error = null
+			})
+			.addCase(
+				refresh.fulfilled,
+				(state, action: PayloadAction<RefreshResponse>) => {
+					state.globalLoading = false
+					state.user = mapUserFromGrpc(action.payload.user!)
+					localStorage.setItem(ACCESS_TOKEN_NAME, action.payload.accessToken)
+					localStorage.setItem(REFRESH_TOKEN_NAME, action.payload.refreshToken)
+					if (action.payload.user) {
+						localStorage.setItem('username', action.payload.user.username)
+					}
+				}
+			)
+			.addCase(refresh.rejected, state => {
 				state.globalLoading = false
-				state.loading = false
-				state.token = action.payload.token
-				state.user = action.payload.user
-				localStorage.setItem('token', action.payload.token)
-				localStorage.setItem('username', action.payload.user.username)
-			}
-		)
-		builder.addCase(register.rejected, (state, action) => {
-			state.globalLoading = false
-			state.loading = false
-			state.error = action.payload as ApiResponse<null> | null
-		})
+				state.user = null
+				localStorage.removeItem(ACCESS_TOKEN_NAME)
+				localStorage.removeItem(REFRESH_TOKEN_NAME)
+				localStorage.removeItem('username')
+			})
+
+			.addCase(logout.fulfilled, state => {
+				state.user = null
+				localStorage.removeItem(ACCESS_TOKEN_NAME)
+				localStorage.removeItem(REFRESH_TOKEN_NAME)
+				localStorage.removeItem('username')
+			})
 	},
 })
 

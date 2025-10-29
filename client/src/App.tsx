@@ -10,13 +10,14 @@ import Loader from './components/loaders/Loader'
 import AppRoutes from './routes/App-routes'
 import { refresh } from './store/slices/auth.slice'
 import { store, type AppDispatch, type RootState } from './store/store'
+import { REFRESH_TOKEN_NAME } from './utils/constants'
 
 function AppContent() {
 	const dispatch = useDispatch<AppDispatch>()
 	const { globalLoading } = useSelector((state: RootState) => state.auth)
 
 	useEffect(() => {
-		const token = localStorage.getItem('token')
+		const token = localStorage.getItem(REFRESH_TOKEN_NAME)
 		if (token) {
 			dispatch(refresh())
 		}

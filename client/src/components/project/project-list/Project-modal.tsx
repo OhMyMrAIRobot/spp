@@ -5,7 +5,6 @@ import {
 	useUpdateProjectMutation,
 } from '../../../store/services/project-api-service'
 import { useGetUsersQuery } from '../../../store/services/user-api-service'
-import type { ApiError } from '../../../types/api/api-error'
 import type { CreateProjectData } from '../../../types/projects/create-project-data'
 import type { IProject } from '../../../types/projects/project'
 import type { IUser } from '../../../types/users/user'
@@ -60,19 +59,15 @@ const ProjectModal: FC<IProps> = ({ isOpen, onClose, project }) => {
 			? updateProject({ id: project.id, changes: data }).unwrap()
 			: createProject(data).unwrap()
 
-		promise.catch(err => {
-			const apiError = err as ApiError
-
-			if (apiError.data?.errors?.length) {
-				apiError.data.errors.forEach(e => toast.error(e.message))
-			} else if (apiError.data?.message) {
-				toast.error(apiError.data.message)
-			} else {
-				toast.error('Something went wrong')
-			}
-		})
-
-		onClose()
+		promise
+			.then(() => onClose())
+			.catch(err => {
+				if (err.message) {
+					toast.error(err.message)
+				} else {
+					toast.error('Something went wrong')
+				}
+			})
 	}
 
 	const isLoading = isCreating || isUpdating

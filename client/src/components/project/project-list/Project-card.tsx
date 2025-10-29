@@ -3,17 +3,17 @@ import { useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
 import DeleteSvg from '../../../assets/svg/Delete-svg'
 import EditSvg from '../../../assets/svg/Edit-svg'
+import type { Project } from '../../../grpc/generated/project'
 import { ROUTES } from '../../../routes/routes'
 import { useDeleteProjectMutation } from '../../../store/services/project-api-service'
 import type { RootState } from '../../../store/store'
-import type { IProjectWithStats } from '../../../types/projects/project-with-stats'
 import { UserRoleEnum } from '../../../types/users/user-role-enum'
 import { dateUtils } from '../../../utils/date-util'
 import SkeletonLoader from '../../loaders/Skeleton-loader'
 import ConfirmationModal from '../../modal/Confirmation-modal'
 
 interface IProps {
-	project?: IProjectWithStats
+	project?: Project
 	isLoading: boolean
 	onEditClick?: () => void
 }
@@ -29,13 +29,13 @@ const ProjectCard: FC<IProps> = ({ project, isLoading, onEditClick }) => {
 		return <SkeletonLoader className={'w-full rounded-lg h-44'} />
 
 	const totalTasksCount =
-		project.taskCounts.DONE +
-		project.taskCounts.IN_PROGRESS +
-		project.taskCounts.TODO
+		(project.taskCounts?.done ?? 0) +
+		(project.taskCounts?.inProgress ?? 0) +
+		(project.taskCounts?.todo ?? 0)
 
 	const completionPercentage =
 		totalTasksCount > 0
-			? Math.round((project.taskCounts.DONE / totalTasksCount) * 100)
+			? Math.round(((project.taskCounts?.done ?? 0) / totalTasksCount) * 100)
 			: 0
 
 	const projectDetailsPath = ROUTES.PROJECT_DETAILS.replace(':id', project.id)
@@ -103,19 +103,19 @@ const ProjectCard: FC<IProps> = ({ project, isLoading, onEditClick }) => {
 					<div className='flex items-center gap-1'>
 						<div className='w-2 h-2 bg-blue-500 rounded-full' />
 						<span className='text-sm text-black/70'>
-							Todo: {project.taskCounts.TODO}
+							Todo: {project.taskCounts?.todo ?? 0}
 						</span>
 					</div>
 					<div className='flex items-center gap-1'>
 						<div className='w-2 h-2 bg-yellow-500 rounded-full' />
 						<span className='text-sm text-black/70'>
-							In Progress: {project.taskCounts.IN_PROGRESS}
+							In Progress: {project.taskCounts?.inProgress ?? 0}
 						</span>
 					</div>
 					<div className='flex items-center gap-1'>
 						<div className='w-2 h-2 bg-green-500 rounded-full' />
 						<span className='text-sm text-black/70'>
-							Done: {project.taskCounts.DONE}
+							Done: {project.taskCounts?.done ?? 0}
 						</span>
 					</div>
 				</div>
@@ -134,7 +134,8 @@ const ProjectCard: FC<IProps> = ({ project, isLoading, onEditClick }) => {
 					{/* Footer */}
 					<div className='flex items-center justify-between'>
 						<span className='text-sm text-black/50'>
-							{project.taskCounts.DONE} of {totalTasksCount} tasks completed
+							{project.taskCounts?.done ?? 0} of {totalTasksCount} tasks
+							completed
 						</span>
 						<span className='text-sm font-medium text-purple-700'>
 							{completionPercentage}%

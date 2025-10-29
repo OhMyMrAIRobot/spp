@@ -4,7 +4,6 @@ import {
 	useCreateTaskMutation,
 	useUpdateTaskMutation,
 } from '../../store/services/task-api-service'
-import type { ApiError } from '../../types/api/api-error'
 import type { ITask } from '../../types/tasks/task'
 import { TaskStatusEnum } from '../../types/tasks/task-status-enum'
 import FormButton from '../buttons/Form-button'
@@ -84,19 +83,15 @@ const TaskModal: FC<IProps> = ({ isOpen, onClose, projectId, task }) => {
 			}).unwrap()
 		}
 
-		promise.catch(err => {
-			const apiError = err as ApiError
-
-			if (apiError.data?.errors?.length) {
-				apiError.data.errors.forEach(e => toast.error(e.message))
-			} else if (apiError.data?.message) {
-				toast.error(apiError.data.message)
-			} else {
-				toast.error('Something went wrong')
-			}
-		})
-
-		onClose()
+		promise
+			.then(() => onClose())
+			.catch(err => {
+				if (err.message) {
+					toast.error(err.message)
+				} else {
+					toast.error('Something went wrong')
+				}
+			})
 	}
 
 	return (
